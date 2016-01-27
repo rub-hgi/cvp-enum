@@ -1,0 +1,67 @@
+# ----------------------------------------------------------------------------
+# Title      : Reduction Commandline Parser
+# Project    : LWE Sampler
+# ----------------------------------------------------------------------------
+# File       : cmdline_reduction.ggo
+# Author     : Friedrich Wiemer <friedrich.wiemer@rub.de>
+#              Elena Kirshanova <elena.kirshanova@rub.de>
+# Company    : Ruhr-University Bochum
+# Created    : 2015-10-28
+# Last update: 2015-10-28
+# ----------------------------------------------------------------------------
+# Description:
+#     This file describes the command line arguments used for the reduction.
+#     It should be processed with gengetopt* to generate the according *.c and
+#     *.h file used when compiling the code.
+#     *) https://www.gnu.org/software/gengetopt/gengetopt.html
+# ----------------------------------------------------------------------------
+# Revisions  :
+# Date        Version  Author  Description
+# 2015-10-28  1.0      fwi     Created
+# ----------------------------------------------------------------------------
+
+package "reduction"
+version "@VERSION_MAJOR@.@VERSION_MINOR@.@VERSION_JUNIOR@"
+purpose "Reads a basis from a file and run BKZ reduction with given parameters."
+
+# Options
+
+option  "beta"
+        b
+        "blocksize of BKZ reduction"
+        int
+        required
+
+section "Optional Arguments"
+        sectiondesc="the following options can be used to tune internal behaviour of program"
+text ""
+
+option  "delta"
+        d
+        "delta of BKZ reduction"
+        double
+        default="0.99"
+        optional
+
+option  "ifile"
+        i
+        "input file"
+        string
+        typestr="FILENAME"
+        default="samples_matrix.dat"
+        optional
+
+option  "ofile"
+        o
+        "output file"
+        string
+        typestr="FILENAME"
+        default="reduced_matrix.dat"
+        optional
+
+option "prune"
+        P
+        "pruning factor for BKZ reduction"
+        int
+        default="0"
+        optional

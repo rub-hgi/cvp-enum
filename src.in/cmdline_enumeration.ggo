@@ -1,0 +1,127 @@
+# ----------------------------------------------------------------------------
+# Title      : Enumeration Commandline Parser
+# Project    : LWE Sampler
+# ----------------------------------------------------------------------------
+# File       : cmdline_enumeration.ggo
+# Author     : Friedrich Wiemer <friedrich.wiemer@rub.de>
+#              Elena Kirshanova <elena.kirshanova@rub.de>
+# Company    : Ruhr-University Bochum
+# Created    : 2015-10-28
+# Last update: 2015-10-28
+# ----------------------------------------------------------------------------
+# Description:
+#     This file describes the command line arguments used for the enumeration.
+#     It should be processed with gengetopt* to generate the according *.c and
+#     *.h file used when compiling the code.
+#     *) https://www.gnu.org/software/gengetopt/gengetopt.html
+# ----------------------------------------------------------------------------
+# Revisions  :
+# Date        Version  Author  Description
+# 2015-10-28  1.0      fwi     Created
+# ----------------------------------------------------------------------------
+
+package "enumeration"
+version "@VERSION_MAJOR@.@VERSION_MINOR@.@VERSION_JUNIOR@"
+purpose "Reads a basis from a file and a target vector, runs an enumeration algorithm
+on it and outputs the result."
+
+# Options
+option  "dimension"
+        n
+        "lattice dimension for LWE samples"
+        int
+        required
+
+option  "modulus"
+        q
+        "lattice modulus"
+        long
+        required
+
+option  "sigma"
+        s
+        "standard deviaton of error distribution"
+        double
+        required
+
+option  "beta"
+        b
+        "blocksize of BKZ reduction"
+        int
+        required
+
+option  "enumeration"
+        e
+        "which enumeration algorithm to use (lp = Lindner Peikert, ln = Liu Nguyen)"
+        values="ntl","babai","lp","ln"
+        enum
+        default="ln"
+        optional
+
+section "Optional Arguments"
+        sectiondesc="the following options can be used to tune internal behaviour of program"
+text ""
+
+option  "babaiBound"
+        -
+        "when running LengthPruning, this factor controlls the generation of the R sequecne and especially when to switch to Babais enumeration"
+        double
+        default="4"
+        optional
+
+option  "dComp"
+        -
+        "how to compute d Sequence for LP's enumeration"
+        values="delta","success","binary"
+        enum
+        default="success"
+        optional
+
+option  "factor"
+        -
+        "controls the number of iterations done during enumeration"
+        double
+        default="1.5"
+        optional
+
+option  "factor_bin"
+        -
+        "controls the number of iterations done when using binary secret d sequences"
+        double
+        default="1.0"
+        optional
+
+option  "delta"
+        d
+        "delta of BKZ reduction"
+        double
+        default="0.99"
+        optional
+
+option "parallel" p "run parallel implementations of enumeration algorithms" flag off
+
+option "n-threads"
+        -
+        "number of threads to use in parallel implementations"
+        int
+        default="0"
+        optional
+
+option  "ifile"
+        i
+        "input file prefix, \"_{matrix,vector}.dat\" will be appended."
+        string
+        typestr="FILENAME PREFIX"
+        default="samples"
+        optional
+
+option  "ofile"
+        o
+        "output file"
+        string
+        typestr="FILENAME"
+        default="solution_vector.dat"
+        optional
+
+option "binary_secret" - "generate secrect from binary uniform distribution {0, 1}" flag off
+option "binary_a" - "generate A from binary uniform distribution {0, 1}" flag off

@@ -1,0 +1,67 @@
+# ----------------------------------------------------------------------------
+# Title      : LWE Sampler Commandline Parser
+# Project    : LWE Sampler
+# ----------------------------------------------------------------------------
+# File       : cmdline_lwesampler.ggo
+# Author     : Friedrich Wiemer <friedrich.wiemer@rub.de>
+#              Elena Kirshanova <elena.kirshanova@rub.de>
+# Company    : Ruhr-University Bochum
+# Created    : 2015-10-28
+# Last update: 2015-10-28
+# ----------------------------------------------------------------------------
+# Description:
+#     This file describes the command line arguments used for the lwe sampler.
+#     It should be processed with gengetopt* to generate the according *.c and
+#     *.h file used when compiling the code.
+#     *) https://www.gnu.org/software/gengetopt/gengetopt.html
+# ----------------------------------------------------------------------------
+# Revisions  :
+# Date        Version  Author  Description
+# 2015-10-28  1.0      fwi     Created
+# ----------------------------------------------------------------------------
+
+package "lwesampler"
+version "@VERSION_MAJOR@.@VERSION_MINOR@.@VERSION_JUNIOR@"
+purpose "The program generates the specified number of LWE samples."
+
+# Options
+option  "dimension"
+        n
+        "lattice dimension for LWE samples"
+        int
+        required
+
+option  "modulus"
+        q
+        "lattice modulus"
+        long
+        required
+
+option  "samples"
+        m
+        "number of samples"
+        int
+        required
+
+option  "sigma"
+        s
+        "standard deviaton of error distribution"
+        double
+        required
+
+section "Optional Arguments"
+        sectiondesc="the following options can be used to tune internal behaviour of program"
+text ""
+
+option  "ofile"
+        o
+        "output file"
+        string
+        typestr="FILENAME"
+        default="samples"
+        optional
+
+option "binary"  2 "generate error from binary uniform distribution {0, 1}" flag off
+option "trinary" 3 "generate error from trinary uniform distribution {-1, 0, 1}" flag off
+option "binary_secret" - "generate secrect from binary uniform distribution {0, 1}" flag off
+option "binary_a" - "generate A from binary uniform distribution {0, 1}" flag off
