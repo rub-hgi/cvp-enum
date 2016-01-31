@@ -29,14 +29,13 @@
 #include <tuple>
 
 std::tuple<NTL::Mat<NTL::ZZ>, NTL::Vec<NTL::ZZ>, NTL::Vec<NTL::ZZ>>
-GenerateSamples(int n, long q, int m, double sigma, int tailfactor, int number_of_rects,
-	int precision, int flag_binary, int flag_trinary, int flag_binary_secret,
-	int flag_binary_a);
+GenerateSamples(int n, long q, int m, double sigma, int tailfactor,
+				int number_of_rects, int precision, int flag_binary,
+				int flag_trinary, int flag_binary_secret, int flag_binary_a);
 
 NTL::Vec<NTL::ZZ> RandomVec(int n, long q);
 NTL::Mat<NTL::ZZ> PadMatrix(NTL::Mat<NTL::ZZ> A, long q, int m, int n);
 
-NTL::Mat<NTL::ZZ> CreateLPerp(NTL::Mat<NTL::ZZ> const& A, int n, int m, long q);
+NTL::Mat<NTL::ZZ> CreateLPerp(NTL::Mat<NTL::ZZ> const &A, int n, int m, long q);
 
-#endif  // __LWESAMPLER_H__
-
+#endif // __LWESAMPLER_H__

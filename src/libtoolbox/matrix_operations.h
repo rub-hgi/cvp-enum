@@ -27,7 +27,7 @@
 
 #include <vector>
 
-template<typename T>
+template <typename T>
 using matrix = std::vector<std::vector<T>>;
 
 /**
@@ -36,7 +36,7 @@ using matrix = std::vector<std::vector<T>>;
  *
  * @params B the basis
  */
-matrix<double> GSO(matrix<long> const& B);
+matrix<double> GSO(matrix<long> const &B);
 
 /**
  * GSO_norm
@@ -44,7 +44,7 @@ matrix<double> GSO(matrix<long> const& B);
  *
  * @params B the basis
  */
-matrix<double> GSO_norm(matrix<long> const& B);
+matrix<double> GSO_norm(matrix<long> const &B);
 
 /**
  * muGSO
@@ -53,12 +53,13 @@ matrix<double> GSO_norm(matrix<long> const& B);
  *
  * @params B the basis
  */
-matrix<double> muGSO (matrix<long> const& B);
+matrix<double> muGSO(matrix<long> const &B);
 
-std::vector<double> muT (matrix<double> const& B_star, std::vector<long> const& t);
+std::vector<double> muT(matrix<double> const &B_star,
+						std::vector<long> const &t);
 
-//to compute the coeff. of vector t with respect to basis B_star
-std::vector<double> GSO_coeff (matrix<double> B_star, std::vector<long> t);
+// to compute the coeff. of vector t with respect to basis B_star
+std::vector<double> GSO_coeff(matrix<double> B_star, std::vector<long> t);
 
 /**
  * EuclideanNorm
@@ -66,7 +67,7 @@ std::vector<double> GSO_coeff (matrix<double> B_star, std::vector<long> t);
  *
  * @params u the vector
  */
-double EuclideanNorm(std::vector<long> const& u);
+double EuclideanNorm(std::vector<long> const &u);
 
 /**
  * VectorLengths
@@ -74,15 +75,14 @@ double EuclideanNorm(std::vector<long> const& u);
  *
  * @params M the matrix
  */
-std::vector<double> VectorLengths (matrix<double> const& M);
+std::vector<double> VectorLengths(matrix<double> const &M);
 
 /**
  * Determinant
  * \brief wrapper for NTLs determinant implementation
  */
-int Determinant (matrix<long> M);
+int Determinant(matrix<long> M);
 
-NTL::Mat<NTL::ZZ> Kernel (NTL::Mat<NTL::ZZ> U, long r, long q);
+NTL::Mat<NTL::ZZ> Kernel(NTL::Mat<NTL::ZZ> U, long r, long q);
 
-#endif  // __MATRIX_OPERATIONS_H__
-
+#endif // __MATRIX_OPERATIONS_H__

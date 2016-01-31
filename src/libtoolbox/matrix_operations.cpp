@@ -43,19 +43,15 @@ using namespace std;
  *
  * @params B the basis
  */
-matrix<double> GSO(matrix<long> const& B_std)
-{
+matrix<double> GSO(matrix<long> const &B_std) {
 	Mat<ZZ> B = to_ntl<ZZ>(B_std);
 	Mat<RR> B_star;
 	B_star.SetDims(B.NumRows(), B.NumCols());
-	if (B.NumRows() > 0)
-	{
+	if (B.NumRows() > 0) {
 		B_star[0] = conv<Vec<RR>>(B[0]);
-		for (int i = 1; i < B.NumRows(); ++i)
-		{
+		for (int i = 1; i < B.NumRows(); ++i) {
 			B_star[i] = conv<Vec<RR>>(B[i]);
-			for (int j = 0; j < i; ++j)
-			{
+			for (int j = 0; j < i; ++j) {
 				RR num; num = 0;
 				RR denom; denom = 0;
 				RR division; division = 0;
@@ -78,13 +74,11 @@ matrix<double> GSO(matrix<long> const& B_std)
  *
  * @params B the basis
  */
-matrix<double> GSO_norm(matrix<long> const& B)
-{
+matrix<double> GSO_norm(matrix<long> const &B) {
 	Mat<RR> B_star = to_ntl<RR>(GSO(B));
 
 	RR inv_length_sq;
-	for (int i = 0; i < B_star.NumRows(); ++i)
-	{
+	for (int i = 0; i < B_star.NumRows(); ++i) {
 		inv_length_sq = 1 / (B_star[i] * B_star[i]);
 		B_star[i] = B_star[i] * inv_length_sq;
 	}
@@ -100,22 +94,18 @@ matrix<double> GSO_norm(matrix<long> const& B)
  *
  * @params B the basis
  */
-matrix<double> muGSO(matrix<long> const& B_std)
-{
+matrix<double> muGSO(matrix<long> const &B_std) {
 	Mat<ZZ> B = to_ntl<ZZ>(B_std);
 	Mat<RR> B_star;
 	Mat<RR> muGSO;
 	muGSO.SetDims(B.NumRows(), B.NumCols());
 	B_star.SetDims(B.NumRows(), B.NumCols());
-	if (B.NumRows() > 0)
-	{
+	if (B.NumRows() > 0) {
 		B_star[0] = conv<Vec<RR>>(B[0]);
 		InnerProduct(muGSO[0][0], B_star[0], B_star[0]);
-		for (long i = 1; i < B.NumRows(); ++i)
-		{
+		for (long i = 1; i < B.NumRows(); ++i) {
 			B_star[i] = conv<Vec<RR>>(B[i]);
-			for (long j = 0; j < i; ++j)
-			{
+			for (long j = 0; j < i; ++j) {
 				RR num; num = 0;
 				RR denom; denom = 0;
 				RR division; division = 0;
@@ -137,20 +127,18 @@ matrix<double> muGSO(matrix<long> const& B_std)
  * \brief on input GSO(B) and a vector t returnes the "embedded" vector t in the
  *        mu matrix
  *
- *        we use this trick to implement the optimized variant of NearestPlane as done
- *        in the NTL
+ *        we use this trick to implement the optimized variant of NearestPlane
+ *        as done in the NTL
  */
-vector<double> muT(matrix<double> const& B_star_std, vector<long> const& t_std)
-{
+vector<double> muT(matrix<double> const &B_star_std,
+				   vector<long> const &t_std) {
 	Mat<RR> B_star = to_ntl<RR>(B_star_std);
 	Vec<ZZ> t = to_ntl<ZZ>(t_std);
 	long dim = t.length();
 	Vec<RR> result;
 	result.SetLength(dim);
-	if (dim > 0)
-	{
-		for (long i = 0; i < dim; ++i)
-		{
+	if (dim > 0) {
+		for (long i = 0; i < dim; ++i) {
 			RR num; num = 0;
 			RR denom; denom = 0;
 
@@ -163,23 +151,21 @@ vector<double> muT(matrix<double> const& B_star_std, vector<long> const& t_std)
 	return to_stl<double>(result);
 }
 
-//to compute the coeff. of vector t with respect to basis B_star
-vector<double> GSO_coeff(matrix<double> B_star, vector<long> t)
-{
+// to compute the coeff. of vector t with respect to basis B_star
+vector<double> GSO_coeff(matrix<double> B_star, vector<long> t) {
 	size_t m = t.size();
 
 	Vec<RR> t_star;
 	Vec<RR> t_conv = to_ntl<RR>(t);
-	t_star.SetLength((int) m);
+	t_star.SetLength((int)m);
 
 	mul(t_star, t_conv, to_ntl<RR>(B_star)); //--cases error TO DEBUG.
 
 	//- to test wheter t_star*B_star = t --EK
 	Vec<RR> tTest;
-	tTest.SetLength((int) m);
-	for (size_t i = 0; i < m; ++i)
-	{
-		tTest = tTest + t_star[(int) i] * to_ntl<RR>(B_star[i]);
+	tTest.SetLength((int)m);
+	for (size_t i = 0; i < m; ++i) {
+		tTest = tTest + t_star[(int)i] * to_ntl<RR>(B_star[i]);
 	}
 
 	return to_stl<double>(t_star);
@@ -191,12 +177,10 @@ vector<double> GSO_coeff(matrix<double> B_star, vector<long> t)
  *
  * @params u the vector
  */
-double EuclideanNorm(vector<long> const& u)
-{
+double EuclideanNorm(vector<long> const &u) {
 	double result = 0;
 
-	for (auto const& i: u)
-	{
+	for (auto const &i : u) {
 		result += pow(abs(i), 2);
 	}
 	result = sqrt(result);
@@ -210,13 +194,11 @@ double EuclideanNorm(vector<long> const& u)
  *
  * @params M the matrix
  */
-vector<double> VectorLengths(matrix<double> const& M)
-{
+vector<double> VectorLengths(matrix<double> const &M) {
 	vector<double> M_lengths;
-	for (auto const& m_i : M)
-	{
-		M_lengths.push_back(inner_product(m_i.cbegin(), m_i.cend(),
-					m_i.cbegin(), 0.0));
+	for (auto const &m_i : M) {
+		M_lengths.push_back(
+			inner_product(m_i.cbegin(), m_i.cend(), m_i.cbegin(), 0.0));
 	}
 	return M_lengths;
 }
@@ -225,32 +207,27 @@ vector<double> VectorLengths(matrix<double> const& M)
  * Determinant
  * \brief wrapper for NTLs determinant implementation
  */
-int Determinant(matrix<long> M)
-{
+int Determinant(matrix<long> M) {
 	return conv<int>(determinant(to_ntl<ZZ>(M)));
 }
 
-Mat<ZZ> Kernel (Mat<ZZ> U, long r, long q)
-{
+Mat<ZZ> Kernel(Mat<ZZ> U, long r, long q) {
 	Mat<ZZ> ker;
 	long m = U.NumCols();
-	//ker.SetDims(m-r, m); //without q-ary part
-	ker.SetDims(2*m-r, m);
-	for (int i=0; i<m-r; i++)
-		for (int j=0; j<m; j++)
+	// ker.SetDims(m-r, m); //without q-ary part
+	ker.SetDims(2 * m - r, m);
+	for (int i = 0; i < m - r; i++)
+		for (int j = 0; j < m; j++)
 			ker[i][j] = U[i][j] % q;
 
 	Mat<ZZ> qI;
 	diag(qI, conv<long>(m), conv<ZZ>(q));
 
-	for (int i=m-r; i<2*m-r; i++)
-	 {
-		for (int j=0; j<m; j++)
-		{
-			ker[i][j] = qI[i-m+r][j];
+	for (int i = m - r; i < 2 * m - r; i++) {
+		for (int j = 0; j < m; j++) {
+			ker[i][j] = qI[i - m + r][j];
 		}
-	 }
+	}
 
 	return ker;
 }
-

@@ -23,7 +23,7 @@
 #include <NTL/matrix.h>
 #include <NTL/ZZ.h>
 
-NTL::Mat<NTL::ZZ> ReduceMatrix (NTL::Mat<NTL::ZZ> A, double delta, int beta, int prune);
+NTL::Mat<NTL::ZZ> ReduceMatrix(NTL::Mat<NTL::ZZ> A, double delta, int beta,
+							   int prune);
 
-#endif  // __REDUCTION_NTL_H__
-
+#endif // __REDUCTION_NTL_H__

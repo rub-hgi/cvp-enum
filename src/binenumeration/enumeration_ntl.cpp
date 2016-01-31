@@ -17,10 +17,8 @@ using namespace std;
  * @params B the lattice basis
  * @params t the target point
  */
-vector<long> NearestPlanesNTL(matrix<long> const& B, vector<long> const& t)
-{
+vector<long> NearestPlanesNTL(matrix<long> const &B, vector<long> const &t) {
 	Vec<ZZ> v;
 	NearVector(v, to_ntl<ZZ>(B), to_ntl<ZZ>(t));
 	return to_stl<long>(v);
 }
-

@@ -23,5 +23,4 @@
 
 extern bool got_sigterm;
 
-#endif  // __SIGNALS_H__
-
+#endif // __SIGNALS_H__

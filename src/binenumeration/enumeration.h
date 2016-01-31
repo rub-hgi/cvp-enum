@@ -36,7 +36,8 @@
  * @params B the lattice basis
  * @params t the target point
  */
-std::vector<long> NearestPlanesNTL(matrix<long> const& B, std::vector<long> const& t);
+std::vector<long> NearestPlanesNTL(matrix<long> const &B,
+								   std::vector<long> const &t);
 
 /**
  * BabaiNearestPlanes
@@ -46,8 +47,9 @@ std::vector<long> NearestPlanesNTL(matrix<long> const& B, std::vector<long> cons
  * @params B the lattice basis
  * @params t the target point
  */
-std::vector<long> NearestPlanesBabaiOpt(matrix<long> const& B, std::vector<long> const& t,
-		matrix<double> const& B_star);
+std::vector<long> NearestPlanesBabaiOpt(matrix<long> const &B,
+										std::vector<long> const &t,
+										matrix<double> const &B_star);
 
 /**
  * NearestPlanesLP
@@ -62,12 +64,16 @@ std::vector<long> NearestPlanesBabaiOpt(matrix<long> const& B, std::vector<long>
  * @params t the target point
  * @params q the modulus
  */
-std::vector<long> NearestPlanesLPOpt(matrix<long> const& B, std::vector<long> const& d,
-		std::vector<long> const& t, long q, matrix<double> const& B_star);
+std::vector<long> NearestPlanesLPOpt(matrix<long> const &B,
+									 std::vector<long> const &d,
+									 std::vector<long> const &t, long q,
+									 matrix<double> const &B_star);
 
-std::vector<long> NearestPlanesLPOptParall(matrix<long> const& B,
-		matrix<double> const& B_star, std::vector<long> const& d, std::vector<long> t, long q,
-		size_t lvl);
+std::vector<long> NearestPlanesLPOptParall(matrix<long> const &B,
+										   matrix<double> const &B_star,
+										   std::vector<long> const &d,
+										   std::vector<long> t, long q,
+										   size_t lvl);
 
 /**
  * PrunedEnumeration
@@ -82,9 +88,10 @@ std::vector<long> NearestPlanesLPOptParall(matrix<long> const& B,
  * @params q the modulus
  * @params lvl level from where to start parallel threads
  */
-std::vector<long> PrunedEnumeration(matrix<long> const& B,
-		matrix<double> const& B_star, std::vector<long> const& d, std::vector<long> t, long q,
-		size_t lvl);
+std::vector<long> PrunedEnumeration(matrix<long> const &B,
+									matrix<double> const &B_star,
+									std::vector<long> const &d,
+									std::vector<long> t, long q, size_t lvl);
 
 /**
  * ComputeD
@@ -98,11 +105,11 @@ std::vector<long> PrunedEnumeration(matrix<long> const& B,
  * @params beta blocksize of BKZ reduction of B
  * @params s is used to blur the discrete structure of lattices over Z^n
  */
-std::vector<long> ComputeD(matrix<long> const& B, double s);
-std::vector<long> ComputeD_success(matrix<double> A_mu, int beta, double s, int n_in,
-		long q, double factor);
-std::vector<long> ComputeD_binary(matrix<double> A_mu, double s, int n, double factor,
-		double factor_bin);
+std::vector<long> ComputeD(matrix<long> const &B, double s);
+std::vector<long> ComputeD_success(matrix<double> A_mu, int beta, double s,
+								   int n_in, long q, double factor);
+std::vector<long> ComputeD_binary(matrix<double> A_mu, double s, int n,
+								  double factor, double factor_bin);
 std::vector<double> ComputeR_LP(matrix<double> A_mu, std::vector<long> d);
 
 /**
@@ -114,11 +121,15 @@ std::vector<double> ComputeR_LP(matrix<double> A_mu, std::vector<long> d);
  * @params s the standard deviation of the sample-error
  * @params q the modulus
  */
-std::vector<long> LengthPruningOpt(matrix<long> const& B, std::vector<double> const& R,
-		std::vector<double> const& t, long q, matrix<double> const& mu);
-std::vector<long> LengthPruningOptParall(matrix<long> const& B,
-		matrix<double> const& B_star, std::vector<double> const& R,
-		std::vector<long> const& t, long q, size_t lvl);
+std::vector<long> LengthPruningOpt(matrix<long> const &B,
+								   std::vector<double> const &R,
+								   std::vector<double> const &t, long q,
+								   matrix<double> const &mu);
+std::vector<long> LengthPruningOptParall(matrix<long> const &B,
+										 matrix<double> const &B_star,
+										 std::vector<double> const &R,
+										 std::vector<long> const &t, long q,
+										 size_t lvl);
 
 /**
  * ComputeRlength
@@ -128,15 +139,15 @@ std::vector<long> LengthPruningOptParall(matrix<long> const& B,
  * @params s the standard deviation of the sample-error
  * @params factor to tune the number of iterations
  */
-std::vector<double> ComputeRlength(matrix<double> A_mu, double s, double factor, double babaiBound);
+std::vector<double> ComputeRlength(matrix<double> A_mu, double s, double factor,
+								   double babaiBound);
 
 /**
  * ComputeLvl
  * \brief return the lvl from were to start the parallel runs
  */
-size_t ComputeLvlNP(std::vector<long> const& d, int n_threads);
-size_t ComputeLvlLength(matrix<long> const& B, std::vector<double> const& R, std::vector<long> t,
-		int n_threads);
+size_t ComputeLvlNP(std::vector<long> const &d, int n_threads);
+size_t ComputeLvlLength(matrix<long> const &B, std::vector<double> const &R,
+						std::vector<long> t, int n_threads);
 
-#endif  // __ENUMERATION_H__
-
+#endif // __ENUMERATION_H__

@@ -84,35 +84,33 @@ bool got_sigterm = false;
 void sigterm_handler(int _ignored);
 
 // Internal Functions
-tuple<matrix<long>, vector<long>, vector<long>> Sample(chrono::duration<double> &duration);
-matrix<long> Reduce(matrix<long> const& A, chrono::duration<double> &duration);
-vector<long> Enumerate(matrix<long> const& A, vector<long> const& v,
-		chrono::duration<double> &duration);
-bool Check(vector<long> const& solution, vector<long> const& t);
+tuple<matrix<long>, vector<long>, vector<long>>
+Sample(chrono::duration<double> &duration);
+matrix<long> Reduce(matrix<long> const &A, chrono::duration<double> &duration);
+vector<long> Enumerate(matrix<long> const &A, vector<long> const &v,
+					   chrono::duration<double> &duration);
+bool Check(vector<long> const &solution, vector<long> const &t);
 
 /**
  * main
  * \brief parses cli args, generates LWE samples and run BDD attack on it
  */
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 
 	gengetopt_args_info args_info;
 	// let's call our cmdline parser
-	if (cmdline_parser(argc, argv, &args_info) != 0)
-	{
+	if (cmdline_parser(argc, argv, &args_info) != 0) {
 		cerr << "failed parsing command line arguments" << endl;
 		return EXIT_FAILURE;
 	}
 
-	if (signal((int) SIGTERM, sigterm_handler) == SIG_ERR)
-	{
-		cerr << "failed to register SIGTERM handler, ";
-		cerr << "will not exit gracefully on SIGTERM" << endl;
+	if (signal((int)SIGTERM, sigterm_handler) == SIG_ERR) {
+		cerr << "failed to register SIGTERM handler, "
+			 << "will not exit gracefully on SIGTERM" << endl;
 	}
 
 	n_arg = args_info.dimension_arg;
-	q_arg = (long) args_info.modulus_arg;
+	q_arg = (long)args_info.modulus_arg;
 	m_arg = args_info.samples_arg;
 	s_arg = args_info.sigma_arg;
 	beta_arg = args_info.beta_arg;
@@ -134,7 +132,8 @@ int main(int argc, char *argv[])
 	chrono::duration<double> duration_sample;
 
 	// sampling
-	tuple<matrix<long>, vector<long>, vector<long>> samples = Sample(duration_sample);
+	tuple<matrix<long>, vector<long>, vector<long>> samples =
+		Sample(duration_sample);
 
 	vector<long> solution = get<2>(samples);
 	vector<long> t;
@@ -148,26 +147,21 @@ int main(int argc, char *argv[])
 	// enumeration
 	t = Enumerate(A_red, get<1>(samples), duration_enumeration);
 
-	cout << endl;
-	cout << "time for sampling:\t\t"
-		<< duration_sample.count() << " s" << endl;
-	cout << "time for reduction:\t\t"
-		<< duration_reduction.count() << " s" << endl;
-	cout << "time for enumeration:\t\t"
-		<< duration_enumeration.count() << " s" << endl;
-	cout << "\ntime all together:\t\t"
-		<< (duration_sample + duration_reduction + duration_enumeration).count()
-		<< " s" << endl;
+	cout << endl << "time for sampling:\t\t" << duration_sample.count() << " s"
+		 << endl << "time for reduction:\t\t" << duration_reduction.count()
+		 << " s" << endl << "time for enumeration:\t\t"
+		 << duration_enumeration.count() << " s" << endl
+		 << "\ntime all together:\t\t"
+		 << (duration_sample + duration_reduction + duration_enumeration)
+				.count() << " s" << endl;
 
 	cmdline_parser_free(&args_info); // release allocated memory
 
 	cout << "error vector = " << (get<1>(samples) - t) % q_arg << endl;
 
-	if (!Check(solution, t))
-	{
-		cerr << "error!" << endl;
-		cerr << "solution = " << solution << endl;
-		cerr << "found t  = " << t << endl;
+	if (!Check(solution, t)) {
+		cerr << "error!" << endl << "solution = " << solution << endl
+			 << "found t  = " << t << endl;
 		return EXIT_FAILURE;
 	}
 
@@ -180,32 +174,31 @@ int main(int argc, char *argv[])
  * Sample
  * \brief
  */
-tuple<matrix<long>, vector<long>, vector<long>> Sample(chrono::duration<double> &duration)
-{
+tuple<matrix<long>, vector<long>, vector<long>>
+Sample(chrono::duration<double> &duration) {
 
 	tuple<Mat<ZZ>, Vec<ZZ>, Vec<ZZ>> samples;
 
 	chrono::time_point<chrono::system_clock> start;
 	start = chrono::system_clock::now();
 
-	samples = GenerateSamples(n_arg, q_arg, m_arg, s_arg,
-			TAILFACTOR, NUMBER_OF_RECTS, PRECISION,
-			flag_binary, flag_trinary, flag_binary_secret, flag_binary_a);
-	matrix<long> A = to_stl<long>(PadMatrix(get<0>(samples), q_arg, m_arg, n_arg));
+	samples = GenerateSamples(n_arg, q_arg, m_arg, s_arg, TAILFACTOR,
+							  NUMBER_OF_RECTS, PRECISION, flag_binary,
+							  flag_trinary, flag_binary_secret, flag_binary_a);
+	matrix<long> A =
+		to_stl<long>(PadMatrix(get<0>(samples), q_arg, m_arg, n_arg));
 	vector<long> v;
-	vector<long> solution = to_stl<long>(get<2> (samples));
+	vector<long> solution = to_stl<long>(get<2>(samples));
 
-	if (flag_binary_secret==1)
-	{
+	if (flag_binary_secret == 1) {
 		cout << "the secret is binary" << endl;
 
 		A = to_stl<long>(CreateLPerp(to_ntl<ZZ>(A), n_arg, m_arg, q_arg));
 
-		v.resize(m_arg+n_arg);
-		for (int i=0; i<m_arg; i++)
+		v.resize(m_arg + n_arg);
+		for (int i = 0; i < m_arg; i++)
 			v[i] = to_stl<long>(get<1>(samples))[i];
-	} else
-	{
+	} else {
 		v = to_stl<long>(get<1>(samples));
 	}
 
@@ -220,15 +213,15 @@ tuple<matrix<long>, vector<long>, vector<long>> Sample(chrono::duration<double> 
  * Reduce
  * \brief
  */
-matrix<long> Reduce(matrix<long> const& A, chrono::duration<double> &duration)
-{
+matrix<long> Reduce(matrix<long> const &A, chrono::duration<double> &duration) {
 	chrono::time_point<chrono::system_clock> start;
 	chrono::time_point<chrono::system_clock> end;
 
 	matrix<long> A_red;
 
 	start = chrono::system_clock::now();
-	A_red = to_stl<long>(ReduceMatrix(to_ntl<ZZ>(A), delta_arg, beta_arg, prune_arg));
+	A_red = to_stl<long>(
+		ReduceMatrix(to_ntl<ZZ>(A), delta_arg, beta_arg, prune_arg));
 	end = chrono::system_clock::now();
 
 	cout << "Reduction\t\t\t[done]" << endl;
@@ -240,131 +233,116 @@ matrix<long> Reduce(matrix<long> const& A, chrono::duration<double> &duration)
  * Enumerate
  * \brief
  */
-vector<long> Enumerate(matrix<long> const& A, vector<long> const& v,
-		chrono::duration<double> &duration)
-{
+vector<long> Enumerate(matrix<long> const &A, vector<long> const &v,
+					   chrono::duration<double> &duration) {
 	chrono::time_point<chrono::system_clock> start;
 	chrono::time_point<chrono::system_clock> end;
 
 	const matrix<double> A_star = GSO(A);
 
-	m_arg = (int) A.size();
+	m_arg = (int)A.size();
 	vector<long> d;
 	vector<double> r;
 	double r_bar = 1;
 	vector<long> t;
 
-	switch (enum_alg_arg)
-	{
-		case enumeration_arg_ntl:
-			{
-				start = chrono::system_clock::now();
-				t = NearestPlanesNTL(A, v);
-				end = chrono::system_clock::now();
+	switch (enum_alg_arg) {
+	case enumeration_arg_ntl: {
+		start = chrono::system_clock::now();
+		t = NearestPlanesNTL(A, v);
+		end = chrono::system_clock::now();
 
-				cout << "Babai's NearestPlane (NTL)\t[done]" << endl;
-				break;
-			}
+		cout << "Babai's NearestPlane (NTL)\t[done]" << endl;
+		break;
+	}
 
-		case enumeration_arg_babai:
-			{
+	case enumeration_arg_babai: {
 
-				start = chrono::system_clock::now();
-				t = NearestPlanesBabaiOpt(A, v, A_star);
-				end = chrono::system_clock::now();
+		start = chrono::system_clock::now();
+		t = NearestPlanesBabaiOpt(A, v, A_star);
+		end = chrono::system_clock::now();
 
-				cout << "Babai's NearestPlane (Opt)\t[done]" << endl;
-				break;
-			}
+		cout << "Babai's NearestPlane (Opt)\t[done]" << endl;
+		break;
+	}
 
-		case enumeration_arg_lp:
-			{
-				switch (dComp_arg)
-				{
-					case dComp_arg_success:
-						{
-							const matrix<double> A_mu = muGSO(A);
-							d = ComputeD_success(A_mu, beta_arg, s_arg, n_arg, q_arg, factor_arg);
-							break;
-						}
-					case dComp_arg_delta:
-						{
-							d = ComputeD(A, s_arg);
-							break;
-						}
-					case dComp_arg_binary:
-						{
-							const matrix<double> A_mu = muGSO (A);
-							d = ComputeD_binary (A_mu, s_arg, n_arg, factor_arg, factor_bin_arg);
-							break;
-						}
-					case dComp__NULL:
-					default:
-						cerr << "this should not happen" << endl;
-						return t;
-				}
-
-				cout << "d sequence used: " << endl << d << endl;
-				if (parallel_flag)
-				{
-					size_t lvl = ComputeLvlNP(d, n_threads);
-
-					start = chrono::system_clock::now();
-					t = NearestPlanesLPOptParall(A, A_star, d, v, q_arg, lvl);
-					end = chrono::system_clock::now();
-				} else
-				{
-					start = chrono::system_clock::now();
-					t = NearestPlanesLPOpt(A, d, v, q_arg, A_star);
-					end = chrono::system_clock::now();
-				}
-				cout << "Lindner Peikert\t\t\t[done]" << endl;
-				break;
-			}
-
-		case enumeration_arg_ln:
-			{
-				const matrix<double> A_mu = muGSO(A);
-				// actually we only need the entries on the main diagonal
-				// b_star_lengths
-				r = ComputeRlength(A_mu, s_arg, factor_arg, babaiBound_arg);
-
-				vector<double> t_coeff;
-				t_coeff = to_stl<double>(coeffs(to_ntl<ZZ>(A), to_ntl<ZZ>(v)));
-
-				if (parallel_flag)
-				{
-					size_t lvl = ComputeLvlLength(A, r, t, n_threads);
-
-					start = chrono::system_clock::now();
-					t = LengthPruningOptParall(A, A_star, r, v, q_arg, lvl);
-					end = chrono::system_clock::now();
-
-				} else
-				{
-					start = chrono::system_clock::now();
-					t = LengthPruningOpt(A, r, t_coeff, q_arg, A_mu);
-					end = chrono::system_clock::now();
-
-				}
-				cout << "Liu Nguyen\t\t\t[done]" << endl;
-				break;
-			}
-
-		case enumeration__NULL:
+	case enumeration_arg_lp: {
+		switch (dComp_arg) {
+		case dComp_arg_success: {
+			const matrix<double> A_mu = muGSO(A);
+			d = ComputeD_success(A_mu, beta_arg, s_arg, n_arg, q_arg,
+								 factor_arg);
+			break;
+		}
+		case dComp_arg_delta: {
+			d = ComputeD(A, s_arg);
+			break;
+		}
+		case dComp_arg_binary: {
+			const matrix<double> A_mu = muGSO(A);
+			d = ComputeD_binary(A_mu, s_arg, n_arg, factor_arg, factor_bin_arg);
+			break;
+		}
+		case dComp__NULL:
 		default:
-			cerr << "Enumeration: this should not happen" << endl;
+			cerr << "this should not happen" << endl;
 			return t;
+		}
+
+		cout << "d sequence used: " << endl << d << endl;
+		if (parallel_flag) {
+			size_t lvl = ComputeLvlNP(d, n_threads);
+
+			start = chrono::system_clock::now();
+			t = NearestPlanesLPOptParall(A, A_star, d, v, q_arg, lvl);
+			end = chrono::system_clock::now();
+		} else {
+			start = chrono::system_clock::now();
+			t = NearestPlanesLPOpt(A, d, v, q_arg, A_star);
+			end = chrono::system_clock::now();
+		}
+		cout << "Lindner Peikert\t\t\t[done]" << endl;
+		break;
+	}
+
+	case enumeration_arg_ln: {
+		const matrix<double> A_mu = muGSO(A);
+		// actually we only need the entries on the main diagonal
+		// b_star_lengths
+		r = ComputeRlength(A_mu, s_arg, factor_arg, babaiBound_arg);
+
+		vector<double> t_coeff;
+		t_coeff = to_stl<double>(coeffs(to_ntl<ZZ>(A), to_ntl<ZZ>(v)));
+
+		if (parallel_flag) {
+			size_t lvl = ComputeLvlLength(A, r, t, n_threads);
+
+			start = chrono::system_clock::now();
+			t = LengthPruningOptParall(A, A_star, r, v, q_arg, lvl);
+			end = chrono::system_clock::now();
+
+		} else {
+			start = chrono::system_clock::now();
+			t = LengthPruningOpt(A, r, t_coeff, q_arg, A_mu);
+			end = chrono::system_clock::now();
+		}
+		cout << "Liu Nguyen\t\t\t[done]" << endl;
+		break;
+	}
+
+	case enumeration__NULL:
+	default:
+		cerr << "Enumeration: this should not happen" << endl;
+		return t;
 	}
 
 	duration = end - start;
 	return t % q_arg;
 }
 
-void sigterm_handler(int _ignored)
-{
-	cout << "recieved SIGTERM, stopping threads and write current best solution";
-	cout << endl;
+void sigterm_handler(int _ignored) {
+	cout << "recieved SIGTERM, stopping threads and write current best solution"
+		 << endl;
 	got_sigterm = true;
 }
 
@@ -372,15 +350,12 @@ void sigterm_handler(int _ignored)
  * Check
  * \brief checks the first size(solution) entries: solution == t
  */
-bool Check(vector<long> const& solution, vector<long> const& t)
-{
-	for (size_t i=0; i<solution.size(); ++i)
-		if (solution[i] != t[i])
-		{
-			cout << "solution[" << i << "] = " << solution[i] << " != "
-				<< t[i] << " = t[" << i << "]" << endl;
+bool Check(vector<long> const &solution, vector<long> const &t) {
+	for (size_t i = 0; i < solution.size(); ++i)
+		if (solution[i] != t[i]) {
+			cout << "solution[" << i << "] = " << solution[i] << " != " << t[i]
+				 << " = t[" << i << "]" << endl;
 			return false;
 		}
 	return true;
 }
-

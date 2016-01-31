@@ -34,16 +34,14 @@
  * @params filename the file to write too
  * @params data to write
  */
-template<typename T> void Write(std::string const& filename, const T& data)
-{
+template <typename T>
+void Write(std::string const &filename, const T &data) {
 	std::ofstream ofile;
 	ofile.open(filename);
-	if (ofile.is_open())
-	{
+	if (ofile.is_open()) {
 		ofile << std::setprecision(25) << data;
 		ofile.close();
-	} else
-	{
+	} else {
 		std::cout << "Unable to open file" << filename << std::endl;
 	}
 }
@@ -54,20 +52,17 @@ template<typename T> void Write(std::string const& filename, const T& data)
  *
  * @params filename the file to read the data from
  */
-template<typename T> T Read(std::string const& filename)
-{
+template <typename T>
+T Read(std::string const &filename) {
 	T data;
 	std::ifstream ifile(filename);
-	if (ifile.is_open())
-	{
+	if (ifile.is_open()) {
 		ifile >> data;
 		ifile.close();
-	} else
-	{
+	} else {
 		std::cout << "Unable to open file " << filename << std::endl;
 	}
 	return data;
 }
 
-#endif  // __IO_H__
-
+#endif // __IO_H__

@@ -70,25 +70,22 @@ void sigterm_handler(int _ignored);
  * main
  * \brief parses cli args, calls ReduceMatrix and writes the result
  */
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 
 	gengetopt_args_info args_info;
 	// let's call our cmdline parser
-	if (cmdline_parser(argc, argv, &args_info) != 0)
-	{
+	if (cmdline_parser(argc, argv, &args_info) != 0) {
 		cerr << "failed parsing command line arguments" << endl;
 		return EXIT_FAILURE;
 	}
 
-	if (signal((int) SIGTERM, sigterm_handler) == SIG_ERR)
-	{
-		cerr << "failed to register SIGTERM handler, ";
-		cerr << "will not exit gracefully on SIGTERM" << endl;
+	if (signal((int)SIGTERM, sigterm_handler) == SIG_ERR) {
+		cerr << "failed to register SIGTERM handler, "
+			 << "will not exit gracefully on SIGTERM" << endl;
 	}
 
 	n_arg = args_info.dimension_arg;
-	q_arg = (long) args_info.modulus_arg;
+	q_arg = (long)args_info.modulus_arg;
 	s_arg = args_info.sigma_arg;
 	beta_arg = args_info.beta_arg;
 	enum_alg_arg = args_info.enumeration_arg;
@@ -108,124 +105,108 @@ int main(int argc, char *argv[])
 	const matrix<double> A_star = GSO(A);
 	vector<long> v = Read<vector<long>>(ifile_arg + "_vector.dat");
 
-	m_arg = (int) A.size();
+	m_arg = (int)A.size();
 	vector<long> d;
 	vector<double> r;
 	double r_bar = 1;
 	vector<long> t;
 
-	if (parallel_flag)
-	{
-		switch (enum_alg_arg)
-		{
-			case enumeration_arg_lp:
-			case enumeration_arg_ln:
-				{
-					cout << "running parallel implementation" << endl;
-					break;
-				}
-			case enumeration__NULL:
-			default:
-				cerr << "requested parallel implementation not available for chosen enumeration algorithm" << endl;
-				return EXIT_FAILURE;
+	if (parallel_flag) {
+		switch (enum_alg_arg) {
+		case enumeration_arg_lp:
+		case enumeration_arg_ln: {
+			cout << "running parallel implementation" << endl;
+			break;
+		}
+		case enumeration__NULL:
+		default:
+			cerr << "requested parallel implementation not available for "
+					"chosen enumeration algorithm" << endl;
+			return EXIT_FAILURE;
 		}
 	}
 
-	switch (enum_alg_arg)
-	{
-		case enumeration_arg_ntl:
-			{
-				t = NearestPlanesNTL(A, v);
-				break;
-			}
+	switch (enum_alg_arg) {
+	case enumeration_arg_ntl: {
+		t = NearestPlanesNTL(A, v);
+		break;
+	}
 
-		case enumeration_arg_babai:
-			{
-				t = NearestPlanesBabaiOpt(A, v, A_star);
-				break;
-			}
+	case enumeration_arg_babai: {
+		t = NearestPlanesBabaiOpt(A, v, A_star);
+		break;
+	}
 
-		case enumeration_arg_lp:
-			{
-				switch (dComp_arg)
-				{
-					case dComp_arg_success:
-						{
-							const matrix<double> A_mu = muGSO(A);
-							d = ComputeD_success(A_mu, beta_arg, s_arg, n_arg, q_arg, factor_arg);
-							break;
-						}
-					case dComp_arg_delta:
-						{
-							d = ComputeD(A, s_arg);
-							break;
-						}
-					case dComp_arg_binary:
-						{
-							const matrix<double> A_mu = muGSO(A);
-							d = ComputeD_binary(A_mu, s_arg, n_arg, factor_arg, factor_bin_arg);
-							break;
-						}
-					case dComp__NULL:
-					default:
-						cerr << "this should not happen" << endl;
-						return EXIT_FAILURE;
-				}
-
-				cout << "d sequence used: " << endl << d << endl;
-				if (parallel_flag)
-				{
-					size_t lvl = ComputeLvlNP(d, n_threads);
-
-					t = NearestPlanesLPOptParall(A, A_star, d, v, q_arg, lvl);
-
-				} else
-				{
-					t = NearestPlanesLPOpt(A, d, v, q_arg, A_star);
-				}
-				cout << "Lindner Peikert\t\t\t[done]" << endl;
-				break;
-			}
-
-		case enumeration_arg_ln:
-			{
-				const matrix<double> A_mu = muGSO(A);
-				// actually we only need the entries on the main diagonal
-				// b_star_lengths
-				r = ComputeRlength(A_mu, s_arg, factor_arg, babaiBound_arg);
-
-				vector<double> t_coeff;
-				t_coeff = to_stl<double>(coeffs(to_ntl<ZZ>(A), to_ntl<ZZ>(v)));
-
-				if (parallel_flag)
-				{
-					size_t lvl = ComputeLvlLength(A, r, t, n_threads);
-					t = LengthPruningOptParall(A, A_star, r, v, q_arg, lvl);
-				} else
-				{
-					t = LengthPruningOpt(A, r, t_coeff, q_arg, A_mu);
-				}
-				cout << "Liu Nguyen\t\t\t[done]" << endl;
-				break;
-			}
-
-		case enumeration__NULL:
+	case enumeration_arg_lp: {
+		switch (dComp_arg) {
+		case dComp_arg_success: {
+			const matrix<double> A_mu = muGSO(A);
+			d = ComputeD_success(A_mu, beta_arg, s_arg, n_arg, q_arg,
+								 factor_arg);
+			break;
+		}
+		case dComp_arg_delta: {
+			d = ComputeD(A, s_arg);
+			break;
+		}
+		case dComp_arg_binary: {
+			const matrix<double> A_mu = muGSO(A);
+			d = ComputeD_binary(A_mu, s_arg, n_arg, factor_arg, factor_bin_arg);
+			break;
+		}
+		case dComp__NULL:
 		default:
-			cerr << "Enumeration: this should not happen" << endl;
+			cerr << "this should not happen" << endl;
 			return EXIT_FAILURE;
+		}
+
+		cout << "d sequence used: " << endl << d << endl;
+		if (parallel_flag) {
+			size_t lvl = ComputeLvlNP(d, n_threads);
+
+			t = NearestPlanesLPOptParall(A, A_star, d, v, q_arg, lvl);
+
+		} else {
+			t = NearestPlanesLPOpt(A, d, v, q_arg, A_star);
+		}
+		cout << "Lindner Peikert\t\t\t[done]" << endl;
+		break;
+	}
+
+	case enumeration_arg_ln: {
+		const matrix<double> A_mu = muGSO(A);
+		// actually we only need the entries on the main diagonal
+		// b_star_lengths
+		r = ComputeRlength(A_mu, s_arg, factor_arg, babaiBound_arg);
+
+		vector<double> t_coeff;
+		t_coeff = to_stl<double>(coeffs(to_ntl<ZZ>(A), to_ntl<ZZ>(v)));
+
+		if (parallel_flag) {
+			size_t lvl = ComputeLvlLength(A, r, t, n_threads);
+			t = LengthPruningOptParall(A, A_star, r, v, q_arg, lvl);
+		} else {
+			t = LengthPruningOpt(A, r, t_coeff, q_arg, A_mu);
+		}
+		cout << "Liu Nguyen\t\t\t[done]" << endl;
+		break;
+	}
+
+	case enumeration__NULL:
+	default:
+		cerr << "Enumeration: this should not happen" << endl;
+		return EXIT_FAILURE;
 	}
 
 	// reduce t modulo q, before writing it
-	for (auto & i: t)
-	{
+	for (auto &i : t) {
 		i = (i + q_arg) % q_arg;
 	}
 
 	if (flag_binary_a)
-		Write(ofile_arg, (v-t) % q_arg);
-	else if (flag_binary_secret)
-	{
-		t.resize(m_arg-n_arg);
+		Write(ofile_arg, (v - t) % q_arg);
+	else if (flag_binary_secret) {
+		t.resize(m_arg - n_arg);
 		Write(ofile_arg, t);
 	} else
 		Write(ofile_arg, t);
@@ -233,9 +214,8 @@ int main(int argc, char *argv[])
 	return EXIT_SUCCESS;
 }
 
-void sigterm_handler(int _ignored)
-{
-	cout << "recieved SIGTERM, stopping threads and write current best solution" << endl;
+void sigterm_handler(int _ignored) {
+	cout << "recieved SIGTERM, stopping threads and write current best solution"
+		 << endl;
 	got_sigterm = true;
 }
-

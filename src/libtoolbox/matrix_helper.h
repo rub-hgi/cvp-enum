@@ -32,8 +32,8 @@ NTL::Mat<NTL::ZZ> RandomSqrMat(int n, int q);
 NTL::Vec<NTL::ZZ> RandomVec(int n, long q);
 NTL::Mat<NTL::ZZ> RemoveZeros(NTL::Mat<NTL::ZZ> A);
 
-NTL::Vec<NTL::RR> coeffs(NTL::Mat<NTL::ZZ> const& A, NTL::Vec<NTL::ZZ> const& t);
-std::vector<double> coeffs(matrix<long> const& A, std::vector<long> const& t);
+NTL::Vec<NTL::RR> coeffs(NTL::Mat<NTL::ZZ> const &A,
+						 NTL::Vec<NTL::ZZ> const &t);
+std::vector<double> coeffs(matrix<long> const &A, std::vector<long> const &t);
 
-#endif  // __MATRIX_HELPER_H__
-
+#endif // __MATRIX_HELPER_H__

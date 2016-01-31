@@ -30,25 +30,25 @@
 using namespace NTL;
 using namespace std;
 
+LLLCheckFct CHECK = nullptr;
+const long VERBOSE = 1;
+
 /**
  * ReduceMatrix
  * \brief reduces the matrix with BKZ and the given parameter
  *
  * @param
  */
-Mat<ZZ> ReduceMatrix (Mat<ZZ> A, double delta, int beta, int prune)
-{
+Mat<ZZ> ReduceMatrix(Mat<ZZ> A, double delta, int beta, int prune) {
 	// file to dump basis, 0 => no dump; initially 0
-	//LLLDumpFile = (char *) "BKZ_dump.dat";
+	LLLDumpFile = (char *)"BKZ_dump.dat";
 
 	// seconds between status reports, initially 900s = 15min
 	// dump every hour
-	//LLLStatusInterval = 3600;
+	LLLStatusInterval = 3600;
 
-	//     ( ,      ,     ,      , check, verbose)
-	BKZ_RR (A, delta, beta, prune, 0, 1);
+	BKZ_RR(A, delta, beta, prune, CHECK, VERBOSE);
 
-	//LLLDumpFile = nullptr;
-	return RemoveZeros (A);
+	// LLLDumpFile = nullptr;
+	return RemoveZeros(A);
 }
-

@@ -27,17 +27,18 @@
 #include <NTL/ZZ.h>
 
 class Ziggurat {
-	public:
-		Ziggurat(int, double, int, int);
-		~Ziggurat();
-		NTL::ZZ sample();
-	private:
-		int omega; // precision
-		NTL::RR m;
-		NTL::RR sigma;
-		NTL::RR tailcut;
-		NTL::RR *rectys;
-		NTL::ZZ *rectxs;
+public:
+	Ziggurat(int, double, int, int);
+	~Ziggurat();
+	NTL::ZZ sample();
+
+private:
+	int omega; // precision
+	NTL::RR m;
+	NTL::RR sigma;
+	NTL::RR tailcut;
+	NTL::RR *rectys;
+	NTL::ZZ *rectxs;
 };
 
-#endif  // __ZIGGURAT_H__
+#endif // __ZIGGURAT_H__

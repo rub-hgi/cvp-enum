@@ -57,17 +57,15 @@ const int PRECISION = 106;
  * main
  * \brief parses cli args, calls GenerateSamples and writes the result
  */
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 	gengetopt_args_info args_info;
-	if (cmdline_parser(argc, argv, &args_info) != 0)
-	{
+	if (cmdline_parser(argc, argv, &args_info) != 0) {
 		cerr << "failed parsing command line arguments" << endl;
 		return EXIT_FAILURE;
 	}
 
 	n_arg = args_info.dimension_arg;
-	q_arg = (long) args_info.modulus_arg;
+	q_arg = (long)args_info.modulus_arg;
 	m_arg = args_info.samples_arg;
 	s_arg = args_info.sigma_arg;
 	ofile_arg = string(args_info.ofile_arg);
@@ -78,14 +76,13 @@ int main(int argc, char *argv[])
 
 	tuple<Mat<ZZ>, Vec<ZZ>, Vec<ZZ>> samples;
 	// first generates LWE samples
-	samples = GenerateSamples(n_arg, q_arg, m_arg, s_arg,
-			TAILFACTOR, NUMBER_OF_RECTS, PRECISION,
-			flag_binary, flag_trinary, flag_binary_secret, flag_binary_a);
+	samples = GenerateSamples(n_arg, q_arg, m_arg, s_arg, TAILFACTOR,
+							  NUMBER_OF_RECTS, PRECISION, flag_binary,
+							  flag_trinary, flag_binary_secret, flag_binary_a);
 
 	Mat<ZZ> A = get<0>(samples);
 
-	if (flag_binary_a)
-	{
+	if (flag_binary_a) {
 		Vec<ZZ> w;
 		A = transpose(A);
 		LatticeSolve(w, A, get<1>(samples));
@@ -96,25 +93,24 @@ int main(int argc, char *argv[])
 		Mat<ZZ> Ker = Kernel(U, r, q_arg);
 		Write(ofile_arg + "_matrix.dat", Ker);
 
-		for (int i=0; i<m_arg; i++)
+		for (int i = 0; i < m_arg; i++)
 			w[i] = w[i] % q_arg;
 		Write(ofile_arg + "_vector.dat", w);
 	}
-	// if the secret is binary, embed the target vector differently from normal case
-	else if (flag_binary_secret)
-	{
+	// if the secret is binary, embed the target vector differently from normal
+	// case
+	else if (flag_binary_secret) {
 		A = PadMatrix(get<0>(samples), q_arg, m_arg, n_arg);
 		Mat<ZZ> LPerp = CreateLPerp(A, n_arg, m_arg, q_arg);
 		Write(ofile_arg + "_matrix.dat", LPerp);
 
 		Vec<ZZ> target = get<1>(samples);
 		Vec<ZZ> ext_target;
-		ext_target.SetLength(m_arg+n_arg);
-		for (int i=0; i<m_arg; i++)
+		ext_target.SetLength(m_arg + n_arg);
+		for (int i = 0; i < m_arg; i++)
 			ext_target[i] = target[i];
 		Write(ofile_arg + "_vector.dat", ext_target);
-	} else
-	{
+	} else {
 		Write(ofile_arg + "_matrix.dat", PadMatrix(A, q_arg, m_arg, n_arg));
 		Write(ofile_arg + "_vector.dat", get<1>(samples));
 	}
@@ -124,4 +120,3 @@ int main(int argc, char *argv[])
 	cmdline_parser_free(&args_info);
 	return EXIT_SUCCESS;
 }
-

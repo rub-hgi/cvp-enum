@@ -43,11 +43,9 @@ int prune_arg;
  * main
  * \brief parses cli args, calls ReduceMatrix and writes the result
  */
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 	gengetopt_args_info args_info;
-	if (cmdline_parser(argc, argv, &args_info) != 0)
-	{
+	if (cmdline_parser(argc, argv, &args_info) != 0) {
 		cerr << "failed parsing command line arguments" << endl;
 		return EXIT_FAILURE;
 	}

@@ -28,12 +28,10 @@
 using namespace NTL;
 using namespace std;
 
-Mat<ZZ> RandomSqrMat(int n, int q)
-{
+Mat<ZZ> RandomSqrMat(int n, int q) {
 	Mat<ZZ> m;
 	m.SetDims(n, n);
-	for (int i = 0; i < m.NumRows(); ++i)
-	{
+	for (int i = 0; i < m.NumRows(); ++i) {
 		m[i] = RandomVec(n, q);
 	}
 	return m;
@@ -46,14 +44,12 @@ Mat<ZZ> RandomSqrMat(int n, int q)
  * @params n
  * @params q
  */
-Vec<ZZ> RandomVec(int n, long q)
-{
+Vec<ZZ> RandomVec(int n, long q) {
 	Vec<ZZ> v;
 	ZZ mod = conv<ZZ>(q);
 
 	v.SetLength(n);
-	for (ZZ* it = v.begin(); it != v.end(); ++it)
-	{
+	for (ZZ *it = v.begin(); it != v.end(); ++it) {
 		RandomBnd(*it, mod);
 	}
 	return v;
@@ -63,15 +59,12 @@ Vec<ZZ> RandomVec(int n, long q)
  * RemoveZeros
  * \brief remove zero vectors from matrix
  */
-Mat<ZZ> RemoveZeros(Mat<ZZ> A)
-{
+Mat<ZZ> RemoveZeros(Mat<ZZ> A) {
 	Mat<ZZ> newA;
 	newA.SetDims(A.NumCols(), A.NumCols());
 	int j = 0;
-	for (int i = 0; i < A.NumRows(); i++)
-	{
-		if (!IsZero(A[i]))
-		{
+	for (int i = 0; i < A.NumRows(); i++) {
+		if (!IsZero(A[i])) {
 			newA[j] = A[i];
 			j++;
 		}
@@ -79,16 +72,13 @@ Mat<ZZ> RemoveZeros(Mat<ZZ> A)
 	return newA;
 }
 
-Vec<RR> coeffs(Mat<ZZ> const& A, Vec<ZZ> const& t)
-{
+Vec<RR> coeffs(Mat<ZZ> const &A, Vec<ZZ> const &t) {
 	RR det;
 	Vec<RR> t_coeff;
 	solve(det, t_coeff, conv<Mat<RR>>(A), conv<Vec<RR>>(t));
 
 	return t_coeff;
 }
-vector<double> coeffs(matrix<long> const& A, vector<long> const& t)
-{
-    return to_stl<double>(coeffs(to_ntl<ZZ>(A), to_ntl<ZZ>(t)));
+vector<double> coeffs(matrix<long> const &A, vector<long> const &t) {
+	return to_stl<double>(coeffs(to_ntl<ZZ>(A), to_ntl<ZZ>(t)));
 }
-
