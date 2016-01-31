@@ -20,6 +20,9 @@
 // ----------------------------------------------------------------------------
 
 #include <NTL/matrix.h>
+#include <NTL/mat_RR.h>
+#include <NTL/mat_ZZ.h>
+#include <NTL/LLL.h>
 #include <NTL/vector.h>
 #include <NTL/ZZ.h>
 
@@ -33,10 +36,6 @@
 
 #include <unistd.h>
 #include <signal.h>
-
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
 #include <signals.h>
 #include <conversions.h>
@@ -58,8 +57,10 @@ double babaiBound_arg;
 double delta_arg;
 double factor_arg;
 double factor_bin_arg;
+long factor_lvl_arg;
 double s_arg;
 enum_dComp dComp_arg;
+enum_rComp rComp_arg;
 enum_enumeration enum_alg_arg;
 int beta_arg;
 int m_arg;
@@ -69,7 +70,8 @@ int parallel_flag;
 int flag_binary;
 int flag_trinary;
 int flag_binary_secret;
-int flag_binary_a;
+int flag_binary_lwe;
+int flag_binary_sis;
 long q_arg;
 int prune_arg;
 
@@ -96,9 +98,7 @@ bool Check(vector<long> const &solution, vector<long> const &t);
  * \brief parses cli args, generates LWE samples and run BDD attack on it
  */
 int main(int argc, char *argv[]) {
-
 	gengetopt_args_info args_info;
-	// let's call our cmdline parser
 	if (cmdline_parser(argc, argv, &args_info) != 0) {
 		cerr << "failed parsing command line arguments" << endl;
 		return EXIT_FAILURE;
@@ -108,6 +108,7 @@ int main(int argc, char *argv[]) {
 		cerr << "failed to register SIGTERM handler, "
 			 << "will not exit gracefully on SIGTERM" << endl;
 	}
+	got_sigterm = false;
 
 	n_arg = args_info.dimension_arg;
 	q_arg = (long)args_info.modulus_arg;
@@ -116,8 +117,10 @@ int main(int argc, char *argv[]) {
 	beta_arg = args_info.beta_arg;
 	enum_alg_arg = args_info.enumeration_arg;
 	dComp_arg = args_info.dComp_arg;
+	rComp_arg = args_info.rComp_arg;
 	factor_arg = args_info.factor_arg;
 	factor_bin_arg = args_info.factor_bin_arg;
+	factor_lvl_arg = args_info.factor_lvl_arg;
 	babaiBound_arg = args_info.babaiBound_arg;
 	delta_arg = args_info.delta_arg;
 	parallel_flag = args_info.parallel_flag;
@@ -125,8 +128,11 @@ int main(int argc, char *argv[]) {
 	flag_binary = args_info.binary_flag;
 	flag_trinary = args_info.trinary_flag;
 	flag_binary_secret = args_info.binary_secret_flag;
-	flag_binary_a = args_info.binary_a_flag;
+	flag_binary_lwe = args_info.binary_lwe_flag;
+	flag_binary_sis = args_info.binary_sis_flag;
 	prune_arg = args_info.prune_arg;
+
+	cmdline_parser_free(&args_info);
 
 	// timing
 	chrono::duration<double> duration_sample;
@@ -155,8 +161,6 @@ int main(int argc, char *argv[]) {
 		 << (duration_sample + duration_reduction + duration_enumeration)
 				.count() << " s" << endl;
 
-	cmdline_parser_free(&args_info); // release allocated memory
-
 	cout << "error vector = " << (get<1>(samples) - t) % q_arg << endl;
 
 	if (!Check(solution, t)) {
@@ -184,21 +188,39 @@ Sample(chrono::duration<double> &duration) {
 
 	samples = GenerateSamples(n_arg, q_arg, m_arg, s_arg, TAILFACTOR,
 							  NUMBER_OF_RECTS, PRECISION, flag_binary,
-							  flag_trinary, flag_binary_secret, flag_binary_a);
-	matrix<long> A =
-		to_stl<long>(PadMatrix(get<0>(samples), q_arg, m_arg, n_arg));
+							  flag_trinary, flag_binary_secret, flag_binary_lwe,
+							  flag_binary_sis);
+	// matrix<long> A = to_stl<long>(get<0>(samples));
+	Mat<ZZ> A = get<0>(samples);
 	vector<long> v;
 	vector<long> solution = to_stl<long>(get<2>(samples));
 
-	if (flag_binary_secret == 1) {
+	//-------For Binary-SIS---------
+	if (flag_binary_sis) {
+		Vec<ZZ> w;
+		A = transpose(A);
+		LatticeSolve(w, A, get<1>(samples));
+		Mat<ZZ> U;
+		ZZ det;
+		long r = image(det, A, U, 0);
+		cout << "r = " << r << endl;
+		A = Kernel(U, r, q_arg);
+
+		v = to_stl<long>(w) % q_arg;
+	}
+	// if the secret is binary, embed the target vector differently from normal
+	// case
+	else if (flag_binary_secret == 1) {
 		cout << "the secret is binary" << endl;
 
-		A = to_stl<long>(CreateLPerp(to_ntl<ZZ>(A), n_arg, m_arg, q_arg));
+		A = PadMatrix(A, q_arg, m_arg, n_arg);
+		A = CreateLPerp(A, n_arg, m_arg, q_arg, s_arg);
 
 		v.resize(m_arg + n_arg);
 		for (int i = 0; i < m_arg; i++)
-			v[i] = to_stl<long>(get<1>(samples))[i];
+			v[i] = conv<long>(get<1>(samples)[i]);
 	} else {
+		A = PadMatrix(A, q_arg, m_arg, n_arg);
 		v = to_stl<long>(get<1>(samples));
 	}
 
@@ -206,12 +228,13 @@ Sample(chrono::duration<double> &duration) {
 	end = chrono::system_clock::now();
 
 	duration = end - start;
-	return tuple<matrix<long>, vector<long>, vector<long>>(A, v, solution);
+	return tuple<matrix<long>, vector<long>, vector<long>>(to_stl<long>(A), v,
+														   solution);
 }
 
 /**
  * Reduce
- * \brief
+ * \brief TODO
  */
 matrix<long> Reduce(matrix<long> const &A, chrono::duration<double> &duration) {
 	chrono::time_point<chrono::system_clock> start;
@@ -231,19 +254,20 @@ matrix<long> Reduce(matrix<long> const &A, chrono::duration<double> &duration) {
 
 /**
  * Enumerate
- * \brief
+ * \brief TODO
  */
 vector<long> Enumerate(matrix<long> const &A, vector<long> const &v,
 					   chrono::duration<double> &duration) {
 	chrono::time_point<chrono::system_clock> start;
 	chrono::time_point<chrono::system_clock> end;
 
+	const matrix<double> A_star_orth = GSO_norm(A);
 	const matrix<double> A_star = GSO(A);
+	const matrix<double> A_mu = muGSO(A);
 
 	m_arg = (int)A.size();
 	vector<long> d;
 	vector<double> r;
-	double r_bar = 1;
 	vector<long> t;
 
 	switch (enum_alg_arg) {
@@ -269,9 +293,8 @@ vector<long> Enumerate(matrix<long> const &A, vector<long> const &v,
 	case enumeration_arg_lp: {
 		switch (dComp_arg) {
 		case dComp_arg_success: {
-			const matrix<double> A_mu = muGSO(A);
-			d = ComputeD_success(A_mu, beta_arg, s_arg, n_arg, q_arg,
-								 factor_arg);
+			d = ComputeD_success(VectorLengths(A_star), beta_arg, s_arg, n_arg,
+								 q_arg, factor_arg);
 			break;
 		}
 		case dComp_arg_delta: {
@@ -279,7 +302,6 @@ vector<long> Enumerate(matrix<long> const &A, vector<long> const &v,
 			break;
 		}
 		case dComp_arg_binary: {
-			const matrix<double> A_mu = muGSO(A);
 			d = ComputeD_binary(A_mu, s_arg, n_arg, factor_arg, factor_bin_arg);
 			break;
 		}
@@ -291,10 +313,11 @@ vector<long> Enumerate(matrix<long> const &A, vector<long> const &v,
 
 		cout << "d sequence used: " << endl << d << endl;
 		if (parallel_flag) {
-			size_t lvl = ComputeLvlNP(d, n_threads);
+			size_t lvl = ComputeLvlNP(d, n_threads, factor_lvl_arg);
 
 			start = chrono::system_clock::now();
-			t = NearestPlanesLPOptParall(A, A_star, d, v, q_arg, lvl);
+			t = NearestPlanesLPOptParall(A, A_star, d, v, q_arg, n_threads,
+										 lvl);
 			end = chrono::system_clock::now();
 		} else {
 			start = chrono::system_clock::now();
@@ -306,24 +329,32 @@ vector<long> Enumerate(matrix<long> const &A, vector<long> const &v,
 	}
 
 	case enumeration_arg_ln: {
-		const matrix<double> A_mu = muGSO(A);
-		// actually we only need the entries on the main diagonal
-		// b_star_lengths
-		r = ComputeRlength(A_mu, s_arg, factor_arg, babaiBound_arg);
-
-		vector<double> t_coeff;
-		t_coeff = to_stl<double>(coeffs(to_ntl<ZZ>(A), to_ntl<ZZ>(v)));
+		switch (rComp_arg) {
+		case rComp_arg_length: {
+			// actually we only need the entries on the main diagonal
+			// b_star_lengths
+			r = ComputeRlength(A_mu, s_arg, factor_arg, babaiBound_arg);
+			break;
+		}
+		case rComp_arg_piece: {
+			r = ComputeR_PiecewiseB(VectorLengths(A_star), s_arg, factor_arg);
+			break;
+		}
+		case rComp__NULL:
+		default:
+			cerr << "this should not happen" << endl;
+			return t;
+		}
 
 		if (parallel_flag) {
-			size_t lvl = ComputeLvlLength(A, r, t, n_threads);
-
 			start = chrono::system_clock::now();
-			t = LengthPruningOptParall(A, A_star, r, v, q_arg, lvl);
+			t = LengthPruningOptParall(A, A_star, r, v, q_arg, n_threads,
+									   factor_lvl_arg);
 			end = chrono::system_clock::now();
 
 		} else {
 			start = chrono::system_clock::now();
-			t = LengthPruningOpt(A, r, t_coeff, q_arg, A_mu);
+			t = LengthPruningOpt(A, A_star, r, v, q_arg);
 			end = chrono::system_clock::now();
 		}
 		cout << "Liu Nguyen\t\t\t[done]" << endl;
@@ -341,8 +372,8 @@ vector<long> Enumerate(matrix<long> const &A, vector<long> const &v,
 }
 
 void sigterm_handler(int _ignored) {
-	cout << "recieved SIGTERM, stopping threads and write current best solution"
-		 << endl;
+	cout << "recieved SIGTERM" << _ignored
+		 << ", stopping threads and write current best solution" << endl;
 	got_sigterm = true;
 }
 

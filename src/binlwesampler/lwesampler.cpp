@@ -52,7 +52,8 @@ using namespace std;
 tuple<Mat<ZZ>, Vec<ZZ>, Vec<ZZ>>
 GenerateSamples(int n, long q, int m, double sigma, int tailfactor,
 				int number_of_rects, int precision, int flag_binary,
-				int flag_trinary, int flag_binary_secret, int flag_binary_a) {
+				int flag_trinary, int flag_binary_secret, int flag_binary_lwe,
+				int flag_binary_sis) {
 	Mat<ZZ> A;
 	Vec<ZZ> t;
 	Vec<ZZ> s;
@@ -104,8 +105,8 @@ GenerateSamples(int n, long q, int m, double sigma, int tailfactor,
 	}
 
 	// generate LWE samples
-	tuple<Mat<ZZ>, Vec<ZZ>, Vec<ZZ>> result;
-	if (flag_binary_a) {
+	if (flag_binary_sis) {
+		//-------For Binary-SIS---------
 		u = RandomVec(m, 2);
 
 		for (int i = 0; i < n; i++) {
@@ -113,8 +114,17 @@ GenerateSamples(int n, long q, int m, double sigma, int tailfactor,
 			InnerProduct(C1[i], Abin[i], u);
 			C1[i] = C1[i] % q;
 		}
-		tuple<Mat<ZZ>, Vec<ZZ>, Vec<ZZ>> result1(Abin, C1, u);
-		result = result1;
+		return make_tuple(A, t, As);
+	} else if (flag_binary_lwe) {
+		//-------For Binary-LWE---------
+		for (int i = 0; i < m; ++i) {
+			A[i] = RandomVec(n, 2);
+			InnerProduct(t[i], A[i], s);
+			As[i] = t[i] % q;
+			t[i] += e[i];
+			t[i] = t[i] % q;
+		}
+		return make_tuple(A, t, As);
 	} else {
 		for (int i = 0; i < m; ++i) {
 			A[i] = RandomVec(n, q);
@@ -123,13 +133,8 @@ GenerateSamples(int n, long q, int m, double sigma, int tailfactor,
 			t[i] += e[i];
 			t[i] = t[i] % q;
 		}
-		tuple<Mat<ZZ>, Vec<ZZ>, Vec<ZZ>> result1(A, t, As);
-		result = result1;
+		return make_tuple(A, t, As);
 	}
-
-	// tuple<Mat<ZZ>, Vec<ZZ>, Vec<ZZ>> result(A, t, As);
-
-	return result;
 }
 
 /**
@@ -161,25 +166,30 @@ Mat<ZZ> PadMatrix(Mat<ZZ> A, long q, int m, int n) {
 	return res;
 }
 
-Mat<ZZ> CreateLPerp(Mat<ZZ> const &A, int n, int m, long q) {
+Mat<ZZ> CreateLPerp(Mat<ZZ> const &A, int n, int m, long q, double sigma) {
 	Mat<ZZ> LPerp;
 	LPerp.SetDims(2 * n + m, n + m);
 
 	Mat<ZZ> qI;
 	diag(qI, n + m, conv<ZZ>(q));
 
-	for (size_t i = 0; i < n; i++) {
-		for (size_t j = 0; j < n + m; j++) {
+	ZZ factor = (2 * conv<ZZ>(sigma));
+
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n + m; j++) {
 			if (j < m)
 				LPerp[i][j] = -A[i][j] % q;
 			if (j - i == m)
-				LPerp[i][j] = 1;
+				LPerp[i][j] = factor;
 		}
 	}
 
-	for (size_t i = n; i < 2 * n + m; i++) {
-		for (size_t j = 0; j < n + m; j++)
-			LPerp[i][j] = qI[i - n][j];
+	for (int i = n; i < 2 * n + m; i++) {
+		for (int j = 0; j < n + m; j++)
+			if (j < m)
+				LPerp[i][j] = qI[i - n][j];
+			else
+				LPerp[i][j] = factor * qI[i - n][j];
 	}
 
 	return LPerp;

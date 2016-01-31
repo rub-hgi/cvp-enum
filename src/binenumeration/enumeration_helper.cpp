@@ -44,16 +44,17 @@ vector<long> ComputeD(matrix<long> const &B, double s) {
 
 	return d;
 }
-vector<long> ComputeD_success(matrix<double> A_mu, int beta, double s, int n_in,
-							  long q, double factor) {
-	size_t m = A_mu.size();
+
+vector<long> ComputeD_success(vector<double> A_star_length, int beta, double s,
+							  int n_in, long q, double factor) {
+	size_t m = A_star_length.size();
 	vector<long> d(m);
 
 	double tmp;
 
 	for (size_t i = 0; i < m; ++i) {
 		tmp = 3 * s * factor /
-			  (2 * sqrt(A_mu[i][i])); // 3 might be reduced/changed --EK
+			  (2 * sqrt(A_star_length[i])); // 3 might be reduced/changed --EK
 		if (tmp < 1)
 			d[i] = 1;
 		else
@@ -68,12 +69,12 @@ vector<long> ComputeD_success(matrix<double> A_mu, int beta, double s, int n_in,
  */
 vector<long> ComputeD_binary(matrix<double> A_mu, double s, int n,
 							 double factor, double factor_bin) {
-	size_t m = A_mu.size();
+	int m = (int)A_mu.size();
 	vector<long> d(m);
 	double tmp;
 
 	// for the binary part
-	for (size_t i = 0; i < m; i++) {
+	for (int i = 0; i < m; i++) {
 		if (i < n)
 			tmp = factor_bin / (2 * sqrt(A_mu[i][i]));
 		else
@@ -132,9 +133,10 @@ vector<double> ComputeRlength(matrix<double> A_mu, double s, double factor,
  *
  * @params d Lindner Peikerts d vector
  * @params n_threads if we want to run less threads than available by the
- *hardware
+ *         hardware
+ * @params factor_lvl is used to balance short running threads
  */
-size_t ComputeLvlNP(vector<long> const &d, int n_threads) {
+size_t ComputeLvlNP(vector<long> const &d, int n_threads, long factor_lvl) {
 	// check if we got a command line argument to bound the number of threads
 	if ((n_threads > 0) && (n_threads <= number_of_max_threads)) {
 		number_of_max_threads = n_threads;
@@ -149,7 +151,8 @@ size_t ComputeLvlNP(vector<long> const &d, int n_threads) {
 			num_threads *= d[i];
 			lvl = d.size() - 1 - i;
 		}
-		if (num_threads > number_of_max_threads)
+		// factor_lvl balances short running threads
+		if (num_threads > factor_lvl * number_of_max_threads)
 			break;
 	}
 
@@ -160,73 +163,38 @@ size_t ComputeLvlNP(vector<long> const &d, int n_threads) {
 	}
 
 	cout << "number of maximal threads supported by hardware: "
-		 << number_of_max_threads << endl
-		 << "iteration level from where threads will be started: " << lvl
-		 << endl << "number of threads to start at this level: " << num_threads
-		 << endl << endl;
+		 << number_of_max_threads << endl;
+	cout << "iteration level from where threads will be started: " << lvl
+		 << endl;
+	cout << "number of threads to start at this level: " << num_threads << endl
+		 << endl;
 	return lvl;
 }
 
 /**
- * ComputeLvlLength
- * \brief computes the level from where to start parallel runs
- *
- * @params B the basis matrix
- * @params R
- * @params n_threads if we want to run less threads than available by the
- *hardware
+ * ComputeRlength_Piesewise
+ * \brief TODO
  */
-size_t ComputeLvlLength(matrix<long> const &B, vector<double> const &R,
-						vector<long> t, int n_threads) {
-	// check if we got a command line argument to bound the number of threads
-	if ((n_threads > 0) && (n_threads <= number_of_max_threads)) {
-		number_of_max_threads = n_threads;
+vector<double> ComputeR_PiecewiseB(vector<double> b_star_length, double s,
+								   double factor) {
+	size_t m = b_star_length.size();
+	vector<double> R_tmp(m + 1);
+	vector<double> R(m);
+	R_tmp[m] = 0;
+
+	for (size_t i = 1; i <= m; ++i) {
+
+		double a = s * s / b_star_length[m - i];
+		cout << "a = " << a << " " << endl;
+		if (a < 1)
+			R[m - i] = (double)i * s * s * factor * factor;
+		else if (a < 2)
+			R[m - i] = (double)i * s * s * factor * factor * a;
+		else
+			R[m - i] = (double)i * s * s * factor * factor * a * .5;
 	}
 
-	// iterate down until number_of_max_threads is reached
-	const matrix<double> B_star = GSO(B);
-	const matrix<double> B_star_orth = GSO_norm(B);
-	const vector<double> B_star_len = VectorLengths(B_star);
-	size_t m = B.size();
-	size_t lvl = 0;
-	long num_threads = 1;
-	double errL2 = 0.0;
+	// for(size_t i = 0; i<m; i++) R[i] = R_tmp[i];
 
-	for (size_t i = R.size() - 1; i > 0; i--) {
-		size_t level = R.size() - 1 - i;
-
-		double interval =
-			sqrt(fabs((R[m - level - 1] - errL2)) / B_star_len[m - level - 1]);
-		double c_star = inner_product(t.cbegin(), t.cend(),
-									  B_star_orth[m - level - 1].cbegin(), 0.0);
-		long c = (long)ceil(c_star - interval);
-
-		errL2 += pow(c_star - (double)c, 2) * B_star_len[m - level - 1];
-		t -= c * B[m - level - 1];
-
-		unsigned int nodes = ceil(interval);
-
-		cout << "assume " << nodes << " nodes at level " << level << endl;
-		if (nodes > 1) {
-			num_threads *= nodes;
-			lvl = level;
-		}
-		if (num_threads >= number_of_max_threads)
-			break;
-	}
-
-	// if num_threads == 1 then all d_i = 1 => no parallel runs
-	if ((num_threads == 1) || (lvl == R.size() - 1)) {
-		cout << "no parallel runs detected" << endl;
-		lvl = 1;
-	}
-
-	cout << "number of maximal threads supported by hardware: ";
-	cout << number_of_max_threads << endl;
-	cout << "iteration level from where threads will be started: ";
-	cout << lvl << endl;
-	cout << "number of threads to start at this level (assumend): ";
-	cout << num_threads << endl << endl;
-
-	return lvl;
+	return R;
 }

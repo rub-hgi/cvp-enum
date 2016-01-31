@@ -73,25 +73,7 @@ std::vector<long> NearestPlanesLPOptParall(matrix<long> const &B,
 										   matrix<double> const &B_star,
 										   std::vector<long> const &d,
 										   std::vector<long> t, long q,
-										   size_t lvl);
-
-/**
- * PrunedEnumeration
- * \brief takes a lattice basis and a target point and returns the 'relative
- *        closest' lattice points using Pruned Enumeration algorithm
- *        https://hal.inria.fr/hal-00864361/PDF/LiuNguyen.pdf
- *
- * @params B the lattice basis
- * @params B_star precomputed gram-schmidt orthogonalization of B
- * @params d used to control recursion, in order to reduce error probability
- * @params t the target point
- * @params q the modulus
- * @params lvl level from where to start parallel threads
- */
-std::vector<long> PrunedEnumeration(matrix<long> const &B,
-									matrix<double> const &B_star,
-									std::vector<long> const &d,
-									std::vector<long> t, long q, size_t lvl);
+										   int n_threads, size_t lvl);
 
 /**
  * ComputeD
@@ -106,15 +88,17 @@ std::vector<long> PrunedEnumeration(matrix<long> const &B,
  * @params s is used to blur the discrete structure of lattices over Z^n
  */
 std::vector<long> ComputeD(matrix<long> const &B, double s);
-std::vector<long> ComputeD_success(matrix<double> A_mu, int beta, double s,
-								   int n_in, long q, double factor);
+std::vector<long> ComputeD_success(std::vector<double> A_star_length, int beta,
+								   double s, int n_in, long q, double factor);
 std::vector<long> ComputeD_binary(matrix<double> A_mu, double s, int n,
 								  double factor, double factor_bin);
 std::vector<double> ComputeR_LP(matrix<double> A_mu, std::vector<long> d);
 
 /**
  * LengthPruning
- * \brief TODO
+ * \brief takes a lattice basis and a target point and returns the 'relative
+ *        closest' lattice points using Pruned Enumeration algorithm
+ *        https://hal.inria.fr/hal-00864361/PDF/LiuNguyen.pdf
  *
  * @params B the lattice basis
  * @params t the target point
@@ -122,14 +106,14 @@ std::vector<double> ComputeR_LP(matrix<double> A_mu, std::vector<long> d);
  * @params q the modulus
  */
 std::vector<long> LengthPruningOpt(matrix<long> const &B,
+								   matrix<double> const &B_star,
 								   std::vector<double> const &R,
-								   std::vector<double> const &t, long q,
-								   matrix<double> const &mu);
+								   std::vector<long> const &t, long q);
 std::vector<long> LengthPruningOptParall(matrix<long> const &B,
 										 matrix<double> const &B_star,
 										 std::vector<double> const &R,
 										 std::vector<long> const &t, long q,
-										 size_t lvl);
+										 long nthreads, long factor_lvl);
 
 /**
  * ComputeRlength
@@ -141,13 +125,13 @@ std::vector<long> LengthPruningOptParall(matrix<long> const &B,
  */
 std::vector<double> ComputeRlength(matrix<double> A_mu, double s, double factor,
 								   double babaiBound);
+std::vector<double> ComputeR_PiecewiseB(std::vector<double> b_star_length,
+										double s, double factor);
 
 /**
  * ComputeLvl
  * \brief return the lvl from were to start the parallel runs
  */
-size_t ComputeLvlNP(std::vector<long> const &d, int n_threads);
-size_t ComputeLvlLength(matrix<long> const &B, std::vector<double> const &R,
-						std::vector<long> t, int n_threads);
+size_t ComputeLvlNP(std::vector<long> const &d, int n_threads, long factor_lvl);
 
 #endif // __ENUMERATION_H__

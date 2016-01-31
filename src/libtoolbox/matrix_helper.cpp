@@ -1,8 +1,8 @@
 // ----------------------------------------------------------------------------
-// Title      : Reduction
+// Title      : Matrix Helper
 // Project    : LWE Sampler
 // ----------------------------------------------------------------------------
-// File       : reduction.h
+// File       : matrix_helper.cpp
 // Author     : Friedrich Wiemer <friedrich.wiemer@rub.de>
 //              Elena Kirshanova <elena.kirshanova@rub.de>
 // Company    : Ruhr-University Bochum
@@ -28,7 +28,7 @@
 using namespace NTL;
 using namespace std;
 
-Mat<ZZ> RandomSqrMat(int n, int q) {
+Mat<ZZ> RandomSqrMat(int n, long q) {
 	Mat<ZZ> m;
 	m.SetDims(n, n);
 	for (int i = 0; i < m.NumRows(); ++i) {
@@ -72,13 +72,12 @@ Mat<ZZ> RemoveZeros(Mat<ZZ> A) {
 	return newA;
 }
 
-Vec<RR> coeffs(Mat<ZZ> const &A, Vec<ZZ> const &t) {
-	RR det;
-	Vec<RR> t_coeff;
-	solve(det, t_coeff, conv<Mat<RR>>(A), conv<Vec<RR>>(t));
-
-	return t_coeff;
+void round(Vec<RR> &t) {
+	for (long i = 0; i < t.length(); ++i)
+		t[i] = round(t[i]);
 }
-vector<double> coeffs(matrix<long> const &A, vector<long> const &t) {
-	return to_stl<double>(coeffs(to_ntl<ZZ>(A), to_ntl<ZZ>(t)));
+
+void round(vector<double> &t) {
+	for (auto &ti : t)
+		ti = round(ti);
 }

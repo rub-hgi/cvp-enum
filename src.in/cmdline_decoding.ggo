@@ -83,6 +83,14 @@ option  "dComp"
         default="success"
         optional
 
+option  "rComp"
+        -
+        "how to compute R Sequence for Length Pruning"
+        values="length","piece"
+        enum
+        default="length"
+        optional
+
 option  "factor"
         -
         "controls the number of iterations done during enumeration"
@@ -95,6 +103,13 @@ option  "factor_bin"
         "controls the number of iterations done when using binary secret d sequences"
         double
         default="1.0"
+        optional
+
+option  "factor_lvl"
+        -
+        "used to balance short running threads by increasing the overall number of threads"
+        long
+        default="8"
         optional
 
 option  "delta"
@@ -141,7 +156,8 @@ option "prune"
         default="0"
         optional
 
-option "binary"  2 "generate error from binary uniform distribution {0, 1}" flag off
+option "binary"  2 "generate error from binary  uniform distribution     {0, 1}" flag off
 option "trinary" 3 "generate error from trinary uniform distribution {-1, 0, 1}" flag off
 option "binary_secret" - "generate secrect from binary uniform distribution {0, 1}" flag off
-option "binary_a" - "generate A from binary uniform distribution {0, 1}" flag off
+option "binary_lwe" - "generate A from binary uniform distribution {0, 1}" flag off
+option "binary_sis" - "generate A from binary uniform distribution {0, 1}" flag off

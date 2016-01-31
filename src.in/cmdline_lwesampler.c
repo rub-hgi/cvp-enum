@@ -44,10 +44,11 @@ const char *gengetopt_args_info_help[] = {
   "\nOptional Arguments:",
   "  the following options can be used to tune internal behaviour of program",
   "  -o, --ofile=FILENAME  output file  (default=`samples')",
-  "  -2, --binary          generate error from binary uniform distribution {0, 1}\n                          (default=off)",
+  "  -2, --binary          generate error from binary  uniform distribution\n                          {0, 1}  (default=off)",
   "  -3, --trinary         generate error from trinary uniform distribution {-1,\n                          0, 1}  (default=off)",
   "      --binary_secret   generate secrect from binary uniform distribution {0,\n                          1}  (default=off)",
-  "      --binary_a        generate A from binary uniform distribution {0, 1}\n                          (default=off)",
+  "      --binary_lwe      generate A from binary uniform distribution {0, 1}\n                          (default=off)",
+  "      --binary_sis      generate A from binary uniform distribution {0, 1}\n                          (default=off)",
     0
 };
 
@@ -87,7 +88,8 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->binary_given = 0 ;
   args_info->trinary_given = 0 ;
   args_info->binary_secret_given = 0 ;
-  args_info->binary_a_given = 0 ;
+  args_info->binary_lwe_given = 0 ;
+  args_info->binary_sis_given = 0 ;
 }
 
 static
@@ -103,7 +105,8 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->binary_flag = 0;
   args_info->trinary_flag = 0;
   args_info->binary_secret_flag = 0;
-  args_info->binary_a_flag = 0;
+  args_info->binary_lwe_flag = 0;
+  args_info->binary_sis_flag = 0;
   
 }
 
@@ -122,7 +125,8 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->binary_help = gengetopt_args_info_help[10] ;
   args_info->trinary_help = gengetopt_args_info_help[11] ;
   args_info->binary_secret_help = gengetopt_args_info_help[12] ;
-  args_info->binary_a_help = gengetopt_args_info_help[13] ;
+  args_info->binary_lwe_help = gengetopt_args_info_help[13] ;
+  args_info->binary_sis_help = gengetopt_args_info_help[14] ;
   
 }
 
@@ -262,8 +266,10 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "trinary", 0, 0 );
   if (args_info->binary_secret_given)
     write_into_file(outfile, "binary_secret", 0, 0 );
-  if (args_info->binary_a_given)
-    write_into_file(outfile, "binary_a", 0, 0 );
+  if (args_info->binary_lwe_given)
+    write_into_file(outfile, "binary_lwe", 0, 0 );
+  if (args_info->binary_sis_given)
+    write_into_file(outfile, "binary_sis", 0, 0 );
   
 
   i = EXIT_SUCCESS;
@@ -582,7 +588,8 @@ cmdline_parser_internal (
         { "binary",	0, NULL, '2' },
         { "trinary",	0, NULL, '3' },
         { "binary_secret",	0, NULL, 0 },
-        { "binary_a",	0, NULL, 0 },
+        { "binary_lwe",	0, NULL, 0 },
+        { "binary_sis",	0, NULL, 0 },
         { 0,  0, 0, 0 }
       };
 
@@ -662,7 +669,7 @@ cmdline_parser_internal (
             goto failure;
         
           break;
-        case '2':	/* generate error from binary uniform distribution {0, 1}.  */
+        case '2':	/* generate error from binary  uniform distribution     {0, 1}.  */
         
         
           if (update_arg((void *)&(args_info->binary_flag), 0, &(args_info->binary_given),
@@ -697,13 +704,25 @@ cmdline_parser_internal (
           
           }
           /* generate A from binary uniform distribution {0, 1}.  */
-          else if (strcmp (long_options[option_index].name, "binary_a") == 0)
+          else if (strcmp (long_options[option_index].name, "binary_lwe") == 0)
           {
           
           
-            if (update_arg((void *)&(args_info->binary_a_flag), 0, &(args_info->binary_a_given),
-                &(local_args_info.binary_a_given), optarg, 0, 0, ARG_FLAG,
-                check_ambiguity, override, 1, 0, "binary_a", '-',
+            if (update_arg((void *)&(args_info->binary_lwe_flag), 0, &(args_info->binary_lwe_given),
+                &(local_args_info.binary_lwe_given), optarg, 0, 0, ARG_FLAG,
+                check_ambiguity, override, 1, 0, "binary_lwe", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* generate A from binary uniform distribution {0, 1}.  */
+          else if (strcmp (long_options[option_index].name, "binary_sis") == 0)
+          {
+          
+          
+            if (update_arg((void *)&(args_info->binary_sis_flag), 0, &(args_info->binary_sis_given),
+                &(local_args_info.binary_sis_given), optarg, 0, 0, ARG_FLAG,
+                check_ambiguity, override, 1, 0, "binary_sis", '-',
                 additional_error))
               goto failure;
           

@@ -58,6 +58,15 @@ matrix<double> muGSO(matrix<long> const &B);
 std::vector<double> muT(matrix<double> const &B_star,
 						std::vector<long> const &t);
 
+NTL::Vec<NTL::RR> coeffs(NTL::Mat<NTL::ZZ> const &A,
+						 NTL::Vec<NTL::ZZ> const &t);
+std::vector<double> coeffs(matrix<long> const &A, std::vector<long> const &t);
+
+std::vector<double> mu_t2t_coeff(matrix<long> const &A,
+								 NTL::Mat<NTL::RR> A_star_trans,
+								 std::vector<double> mu_lengths, long q,
+								 std::vector<double> const &mu_t);
+
 // to compute the coeff. of vector t with respect to basis B_star
 std::vector<double> GSO_coeff(matrix<double> B_star, std::vector<long> t);
 

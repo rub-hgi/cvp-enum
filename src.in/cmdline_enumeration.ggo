@@ -77,6 +77,14 @@ option  "dComp"
         default="success"
         optional
 
+option  "rComp"
+        -
+        "how to compute R Sequence for Length Pruning"
+        values="length","piece"
+        enum
+        default="length"
+        optional
+
 option  "factor"
         -
         "controls the number of iterations done during enumeration"
@@ -89,6 +97,13 @@ option  "factor_bin"
         "controls the number of iterations done when using binary secret d sequences"
         double
         default="1.0"
+        optional
+
+option  "factor_lvl"
+        -
+        "used to balance short running threads by increasing the overall number of threads"
+        long
+        default="8"
         optional
 
 option  "delta"

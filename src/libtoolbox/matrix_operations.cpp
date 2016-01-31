@@ -1,8 +1,8 @@
 // ----------------------------------------------------------------------------
-// Title      : Reduction
+// Title      : Matrix Operations
 // Project    : LWE Sampler
 // ----------------------------------------------------------------------------
-// File       : reduction.h
+// File       : matrix_operations.cpp
 // Author     : Friedrich Wiemer <friedrich.wiemer@rub.de>
 //              Elena Kirshanova <elena.kirshanova@rub.de>
 // Company    : Ruhr-University Bochum
@@ -32,6 +32,7 @@
 
 #include <conversions.h>
 #include <vector_templates.h>
+#include <matrix_helper.h>
 #include <matrix_operations.h>
 
 using namespace NTL;
@@ -101,14 +102,11 @@ matrix<double> muGSO(matrix<long> const &B_std) {
 	muGSO.SetDims(B.NumRows(), B.NumCols());
 	B_star.SetDims(B.NumRows(), B.NumCols());
 	if (B.NumRows() > 0) {
-		B_star[0] = conv<Vec<RR>>(B[0]);
-		InnerProduct(muGSO[0][0], B_star[0], B_star[0]);
-		for (long i = 1; i < B.NumRows(); ++i) {
+		for (long i = 0; i < B.NumRows(); ++i) {
 			B_star[i] = conv<Vec<RR>>(B[i]);
 			for (long j = 0; j < i; ++j) {
 				RR num; num = 0;
 				RR denom; denom = 0;
-				RR division; division = 0;
 
 				InnerProduct(num, B_star[j], conv<Vec<RR>>(B[i]));
 				InnerProduct(denom, B_star[j], B_star[j]);
@@ -116,7 +114,8 @@ matrix<double> muGSO(matrix<long> const &B_std) {
 				muGSO[i][j] = num / denom;
 				B_star[i] = B_star[i] - muGSO[i][j] * B_star[j];
 			}
-			InnerProduct(muGSO[i][i], B_star[i], B_star[i]);
+			// InnerProduct(muGSO[i][i], B_star[i], B_star[i]);
+			muGSO[i][i] = 1;
 		}
 	}
 	return to_stl<double>(muGSO);
@@ -149,6 +148,33 @@ vector<double> muT(matrix<double> const &B_star_std,
 		}
 	}
 	return to_stl<double>(result);
+}
+
+vector<double> coeffs(matrix<long> const &A, vector<long> const &t) {
+	Mat<RR> A_ntl = to_ntl<RR>(A);
+	Vec<RR> t_ntl = to_ntl<RR>(t);
+	RR det;
+	Vec<RR> t_coeff;
+	t_coeff.SetLength(A_ntl.NumRows());
+	solve(det, t_coeff, A_ntl, t_ntl);
+	return to_stl<double>(t_coeff);
+}
+
+vector<double> mu_t2t_coeff(matrix<long> const &A, Mat<RR> A_star_transp,
+							vector<double> A_star_lengths, long q,
+							vector<double> const &mu_t) {
+	RR det;
+	Vec<RR> t;
+	Vec<RR> mu_t_ntl = to_ntl<RR>(mu_t);
+	for (long i = 0; i < mu_t_ntl.length(); ++i)
+		mu_t_ntl[i] *= A_star_lengths[i];
+	solve(det, t, A_star_transp, mu_t_ntl);
+	round(t);
+
+	Vec<RR> t_coeff;
+	solve(det, t_coeff, to_ntl<RR>(A), t);
+
+	return to_stl<double>(t_coeff);
 }
 
 // to compute the coeff. of vector t with respect to basis B_star

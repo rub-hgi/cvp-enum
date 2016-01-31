@@ -30,9 +30,6 @@
 using namespace NTL;
 using namespace std;
 
-LLLCheckFct CHECK = nullptr;
-const long VERBOSE = 1;
-
 /**
  * ReduceMatrix
  * \brief reduces the matrix with BKZ and the given parameter
@@ -40,6 +37,8 @@ const long VERBOSE = 1;
  * @param
  */
 Mat<ZZ> ReduceMatrix(Mat<ZZ> A, double delta, int beta, int prune) {
+	LLLCheckFct CHECK = nullptr;
+	const long VERBOSE = 1;
 	// file to dump basis, 0 => no dump; initially 0
 	LLLDumpFile = (char *)"BKZ_dump.dat";
 

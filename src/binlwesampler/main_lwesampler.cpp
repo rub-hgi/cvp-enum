@@ -46,7 +46,8 @@ string ofile_arg;
 int flag_binary;
 int flag_trinary;
 int flag_binary_secret;
-int flag_binary_a;
+int flag_binary_lwe;
+int flag_binary_sis;
 
 // sampling arguments - we do not change these anyway, so set them constant
 const int TAILFACTOR = 13;
@@ -72,17 +73,26 @@ int main(int argc, char *argv[]) {
 	flag_binary = args_info.binary_flag;
 	flag_trinary = args_info.trinary_flag;
 	flag_binary_secret = args_info.binary_secret_flag;
-	flag_binary_a = args_info.binary_a_flag;
+	flag_binary_lwe = args_info.binary_lwe_flag;
+	flag_binary_sis = args_info.binary_sis_flag;
+
+	cmdline_parser_free(&args_info);
 
 	tuple<Mat<ZZ>, Vec<ZZ>, Vec<ZZ>> samples;
-	// first generates LWE samples
-	samples = GenerateSamples(n_arg, q_arg, m_arg, s_arg, TAILFACTOR,
-							  NUMBER_OF_RECTS, PRECISION, flag_binary,
-							  flag_trinary, flag_binary_secret, flag_binary_a);
+	samples =
+		GenerateSamples(n_arg, q_arg, m_arg, s_arg, TAILFACTOR, NUMBER_OF_RECTS,
+						PRECISION, flag_binary, flag_trinary,
+						flag_binary_secret, flag_binary_lwe, flag_binary_sis);
 
 	Mat<ZZ> A = get<0>(samples);
 
-	if (flag_binary_a) {
+	if (flag_binary_lwe) {
+		//-------For Binary-LWE---------
+		A = PadMatrix(A, q_arg, m_arg, n_arg);
+		Write(ofile_arg + "_matrix.dat", A);
+		Write(ofile_arg + "_vector.dat", get<1>(samples));
+	} else if (flag_binary_sis == 1) {
+		//-------For Binary-SIS---------
 		Vec<ZZ> w;
 		A = transpose(A);
 		LatticeSolve(w, A, get<1>(samples));
@@ -99,9 +109,9 @@ int main(int argc, char *argv[]) {
 	}
 	// if the secret is binary, embed the target vector differently from normal
 	// case
-	else if (flag_binary_secret) {
+	else if (flag_binary_secret == 1) {
 		A = PadMatrix(get<0>(samples), q_arg, m_arg, n_arg);
-		Mat<ZZ> LPerp = CreateLPerp(A, n_arg, m_arg, q_arg);
+		Mat<ZZ> LPerp = CreateLPerp(A, n_arg, m_arg, q_arg, s_arg);
 		Write(ofile_arg + "_matrix.dat", LPerp);
 
 		Vec<ZZ> target = get<1>(samples);
@@ -111,12 +121,12 @@ int main(int argc, char *argv[]) {
 			ext_target[i] = target[i];
 		Write(ofile_arg + "_vector.dat", ext_target);
 	} else {
-		Write(ofile_arg + "_matrix.dat", PadMatrix(A, q_arg, m_arg, n_arg));
+		A = PadMatrix(A, q_arg, m_arg, n_arg);
+		Write(ofile_arg + "_matrix.dat", A);
 		Write(ofile_arg + "_vector.dat", get<1>(samples));
 	}
 
 	Write(ofile_arg + "_solution.dat", get<2>(samples));
 
-	cmdline_parser_free(&args_info);
 	return EXIT_SUCCESS;
 }

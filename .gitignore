@@ -30,3 +30,12 @@
 # Buildsystem
 build/*
 bin/*
+# automatic generated files
+src/bindecoding/cmdline_decoding.c
+src/bindecoding/cmdline_decoding.h
+src/binenumeration/cmdline_enumeration.c
+src/binenumeration/cmdline_enumeration.h
+src/binlwesampler/cmdline_lwesampler.c
+src/binlwesampler/cmdline_lwesampler.h
+src/binreduction/cmdline_reduction.c
+src/binreduction/cmdline_reduction.h

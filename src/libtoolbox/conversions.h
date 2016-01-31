@@ -85,4 +85,17 @@ NTL::Vec<T> to_ntl(std::vector<U> u) {
 	return v;
 }
 
+template <typename T, typename U>
+std::vector<T> to_stl(std::vector<U> u) {
+	return std::vector<T>(u.cbegin(), u.cend());
+}
+
+template <typename T, typename U>
+matrix<T> to_stl(matrix<U> M) {
+	matrix<T> M_(M.size(), std::vector<T>(M[0].size()));
+	for (size_t i = 0; i < M.size(); ++i)
+		M_[i] = std::vector<T>(M[i].cbegin(), M[i].cend());
+	return M_;
+}
+
 #endif // __CONVERSIONS_H__

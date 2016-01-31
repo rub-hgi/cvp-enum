@@ -61,7 +61,8 @@ option  "ofile"
         default="samples"
         optional
 
-option "binary"  2 "generate error from binary uniform distribution {0, 1}" flag off
+option "binary"  2 "generate error from binary  uniform distribution     {0, 1}" flag off
 option "trinary" 3 "generate error from trinary uniform distribution {-1, 0, 1}" flag off
 option "binary_secret" - "generate secrect from binary uniform distribution {0, 1}" flag off
-option "binary_a" - "generate A from binary uniform distribution {0, 1}" flag off
+option "binary_lwe" - "generate A from binary uniform distribution {0, 1}" flag off
+option "binary_sis" - "generate A from binary uniform distribution {0, 1}" flag off

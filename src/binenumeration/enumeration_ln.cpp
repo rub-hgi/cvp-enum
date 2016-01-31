@@ -1,8 +1,9 @@
+#include <atomic>
 #include <cassert>
 #include <climits>
 #include <cmath>
-#include <atomic>
 #include <condition_variable>
+#include <deque>
 #include <functional>
 #include <future>
 #include <iostream>
@@ -30,88 +31,81 @@ static mutex mut_cout;
 static condition_variable is_thread_free;
 
 // could be replaced by atomic<double>
-static mutex mut_errL2;
-static double current_errL2 = numeric_limits<double>::max();
+static mutex mut_err;
+static double current_error = numeric_limits<double>::max();
 
-double LengthPruningOptThread(shared_ptr<vector<long>> p_solution,
-							  matrix<long> const &B, matrix<double> const &mu,
-							  vector<double> const &R, vector<double> const &t,
-							  vector<long> c, size_t lvl,
-							  vector<double> errVec);
+tuple<vector<long>, double>
+LengthPruningOptThread(matrix<long> const &B, matrix<double> const &mu,
+					   vector<double> const &b_star_lengths,
+					   vector<double> const &rbound, vector<double> const &mu_t,
+					   size_t lvl, double rho_init, long q,
+					   vector<long> v_breadth);
 
 vector<long> LengthPruningOpt(matrix<long> const &B,
+							  matrix<double> const &B_star,
 							  vector<double> const &rbound,
-							  vector<double> const &t, long q,
-							  matrix<double> const &mu) {
+							  vector<long> const &t, long q) {
 	// initialize
+	const matrix<double> mu = muGSO(B);
+	const vector<double> b_star_lengths = VectorLengths(B_star);
+	vector<double> mu_t = muT(B_star, t);
+
 	size_t m = B.size();
 	matrix<double> sigma(m + 1, vector<double>(m, 0));
-	vector<double> r(m + 1);
-	for (size_t i = 0; i < m + 1; ++i)
-		r[i] = i;
+	sigma[m] = mu_t;
 	vector<double> c(m);
-	vector<long> v(m);
 	vector<long> w(m);
-	vector<long> v1(m);
+	vector<long> v(m);
+
 	vector<double> rho(m + 1, 0);
 
-	double current_errL = 0.0;
-
-	vector<long> sol(m, 0); // solution-vector --EK
-
-	// babai
+	// babai for mu_t
 	for (size_t k = m; k > 0; --k) {
-		for (size_t i = m; i > k; --i) {
-			sigma[i - 1][k - 1] =
-				sigma[i][k - 1] + (t[i - 1] - v[i - 1]) * mu[i - 1][k - 1];
-		}
-		c[k - 1] = t[k - 1] + sigma[k][k - 1];
+		c[k - 1] = sigma[k][k - 1];
 		v[k - 1] = lround(c[k - 1]);
 		w[k - 1] = 1;
-		rho[k - 1] = rho[k] + pow(c[k - 1] - v[k - 1], 2) * mu[k - 1][k - 1];
+		rho[k - 1] =
+			rho[k] + pow(c[k - 1] - v[k - 1], 2) * b_star_lengths[k - 1];
+		for (size_t i = 0; i < k; i++)
+			sigma[k - 1][i] = sigma[k][i] - (double)v[k - 1] * mu[k - 1][i];
 	}
 
-	v1 = v;
+	vector<long> v1(v);
 	size_t k = 0;
-	current_errL = rho[k];
+	double error = rho[k];
 
-	while (true) {
-		rho[k] = rho[k + 1] + pow((c[k] - v[k]), 2) * mu[k][k];
+	cout << "finished with babai's part, start while loop" << endl;
+	while (!got_sigterm) {
+		rho[k] = rho[k + 1] + pow((c[k] - v[k]), 2) * b_star_lengths[k];
 		if (rho[k] <= rbound[k]) // we generate the sequence of the form R_1^2 >
 								 // ... > R_m^2
 		{
 			if (k == 0) {
-				if (rho[k] <= current_errL) {
-					cout << "new solution found " << v << endl;
-					// save v:
+				if (rho[k] <= error) {
 					v1 = v;
-					current_errL = rho[k];
-					cout << "of length " << rho[k] << endl;
+					error = rho[k];
+#ifdef DEBUG
+					cout << "new solution of length " << rho[k] << " found"
+						 << endl;
+					cout << "v         = " << v << endl;
+#endif
 				}
 
-				goto TRAVERSE_UP;
+				goto TRAVERSE_UP_LENGTH;
 			} else {
+				for (size_t i = 0; i < k + 1; ++i)
+					sigma[k][i] = sigma[k + 1][i] - double(v[k]) * mu[k][i];
 				k--;
-				r[k] = max(r[k], r[k + 1]);
-				for (size_t i = r[k]; i > k; --i)
-					sigma[i][k] = sigma[i + 1][k] + (t[i] - v[i]) * mu[i][k];
-				c[k] = t[k] + sigma[k + 1][k];
+				c[k] = sigma[k + 1][k];
 				v[k] = lround(c[k]);
 				w[k] = 1;
 			}
 		} else {
-		TRAVERSE_UP:
+		TRAVERSE_UP_LENGTH:
 			k++;
-			if (k == m) {
-				cout << "no new solution found " << v1 << endl;
-				for (size_t i = 0; i < m; ++i) {
-					sol += v1[i] * B[i];
-				}
-				cout << "sol = " << sol % q << endl;
-				return sol % q;
-			}
+			if (k == m)
+				break;
 
-			r[k] = k;
 			if (v[k] > c[k])
 				v[k] -= w[k];
 			else
@@ -119,231 +113,260 @@ vector<long> LengthPruningOpt(matrix<long> const &B,
 			w[k]++;
 		}
 	}
+
+	vector<long> sol(B.size(), 0);
+	for (size_t i = 0; i < m; ++i) {
+		sol += v1[i] * B[i];
+	}
+#ifdef DEBUG
+	cout << "v   = " << v1 << endl;
+	cout << "sol = " << sol % q << endl;
+#endif
+	return sol % q;
 }
+
+typedef tuple<vector<double>, // mu_t
+			  double,		  // err
+			  vector<long>	// v
+			  > thread_args;
 
 vector<long> LengthPruningOptParall(matrix<long> const &B,
 									matrix<double> const &B_star,
 									vector<double> const &rbound,
-									vector<long> const &t, long q, size_t lvl) {
-	size_t spawned_threads = 0;
+									vector<long> const &t, long q,
+									long n_threads, long factor_lvl) {
+	if (n_threads != 0) {
+		number_of_max_threads = n_threads;
+	} else {
+		n_threads = number_of_max_threads;
+	}
+
+	// step 1: Algorithm 3
+	// Traverse Breadth-First
+
 	// initialize
+	const size_t m = B.size();
+	deque<thread_args> queue;
+	vector<long> v(m, 0);
+	queue.push_back(thread_args(vector<double>(muT(B_star, t)), 0.0, v));
+
 	const matrix<double> mu = muGSO(B);
-	vector<double> mu_t = muT(B_star, t);
+	const vector<double> b_star_lengths = VectorLengths(B_star);
 
-	size_t j = 0;
-	size_t m = B.size();
-	vector<double> t_coeff = coeffs(B, t);
-	vector<double> c_star(lvl);
-	vector<long> c_min(lvl);
-	vector<long> c_max(lvl);
-	vector<long> c(m);
-	vector<future<double>> future_solutions;
-	vector<shared_ptr<vector<long>>> solutions;
+	long n = 1;
+	long k = m - 1;
 
-	vector<long> t_err(t);
-	vector<long> solution(m);
-	vector<double> errVec(m + 1, 0);
+	// factor_lvl balances short running threads
+	while ((n < factor_lvl * n_threads) && k > -1) {
+		long cnt = n;
+		n = 0;
+		for (long i = 1; i <= cnt; ++i) {
+			auto nodeargs = queue.front();
+			// TODO optimization: move vector instead of copy it?
+			vector<double> mu_t = get<0>(nodeargs);
+			double error = get<1>(nodeargs);
+			vector<long> v = get<2>(nodeargs);
+			queue.pop_front();
 
-	matrix<double> sigma(m + 1, vector<double>(m, 0));
-	sigma[m] = mu_t;
+			long interval =
+				ceil(sqrt(fabs(rbound[k] - error) / b_star_lengths[k]));
+			// n += interval;
+			double c_star = mu_t[k];
+			for (long j = 0; j < interval; ++j) {
+				v[k] = lround(c_star + j);
+				queue.push_back(thread_args(
+					vector<double>(mu_t - (double)v[k] * mu[k]),
+					error + pow((c_star - v[k]), 2) * b_star_lengths[k], v));
+				n++;
 
-	// iterate down to this level and spawn threads
-	while (!got_sigterm) {
-		// update c_min[j], c_max[j]
-		c_star[j] = sigma[m - j][m - j - 1];
-		double interval = sqrt(fabs(rbound[m - j - 1] - errVec[j]) /
-							   mu[m - j - 1][m - j - 1]);
-		c_min[j] = (long)ceil(c_star[j] - interval / 2.0);
-		c_max[j] = (long)floor(c_star[j] + interval / 2.0);
-		assert((lround(c_star[j]) >= c_min[j]) &&
-			   (lround(c_star[j]) <= c_max[j]) &&
-			   "c_star not in the interval!");
-
-		// TRAVERSE DOWN
-		c[j] = c_min[j];
-
-		if (j != lvl - 1) {
-			errVec[j + 1] =
-				errVec[j] + pow(c_star[j] - c[j], 2) * mu[m - j - 1][m - j - 1];
-
-			for (long i = m - j - 1; i >= 0; --i)
-				sigma[m - j - 1][i] =
-					sigma[m - j][i] - (double)c[j] * mu[m - j - 1][i];
-
-			t_coeff[m - j - 1] -= c[j];
-
-			j++;
-		} else {
-			// main loop to start threads
-			while (c[j] <= c_max[j]) {
-				vector<double> errVec_new = errVec;
-				errVec_new[j + 1] =
-					errVec[j] +
-					pow(c_star[j] - c[j], 2) * mu[m - j - 1][m - j - 1];
-
-				t_coeff[m - j - 1] -= c[j];
-
-				shared_ptr<vector<long>> p_solution(new vector<long>(m, 0));
-				for (size_t i = 0; i <= j; ++i) {
-					*p_solution += c[i] * B[m - i - 1];
-					*p_solution %= q;
+				assert(!((lround(c_star - j) == v[k]) && (j != 0)) &&
+					   "whoops, this wasn't expected");
+				if (lround(c_star - j) != v[k]) {
+					v[k] = lround(c_star - j);
+					queue.push_back(thread_args(
+						vector<double>(mu_t - (double)v[k] * mu[k]),
+						error + pow((c_star - v[k]), 2) * b_star_lengths[k],
+						v));
+					n++;
 				}
-				solutions.push_back(p_solution);
-
-				{ // lock mutex for thread count, wait until we can spawn
-					// another thread and spawn new thread
-					unique_lock<mutex> lock{mut_thread_count};
-					is_thread_free.wait(lock, [&] {
-						return number_of_threads < number_of_max_threads;
-					});
-					// we tell the thread, to start at level lvl+1 here,
-					// because we already have #lvl (0 to lvl-1) iterations
-					// done before and are doing the lvl+1'th iteration in
-					// the current while loop
-					future_solutions.push_back(async(
-						launch::async, LengthPruningOptThread, solutions.back(),
-						B, mu, rbound, t_coeff, c, j + 1, errVec_new));
-					number_of_threads++;
-				} // mutex is freed, when lock goes out of scope
-				is_thread_free.notify_one();
-				spawned_threads++;
-#ifdef DEBUG
-				{
-					unique_lock<mutex> lock{mut_cout};
-					cout << "spawned thread no. " << spawned_threads << endl;
-				}
-#endif
-
-				c[j]++;
 			}
 
-			// 2. traverse up until there is at least one sibbling to the right
-			do {
-				if (j == 0 && c[j] >= c_max[j])
-					goto RETURN_SPAWN_THREADS;
-				t_coeff[m - j - 1] += c[j];
-				j--;
-			} while (c[j] >= c_max[j]);
+			// corner-cases
+			if (error +
+					pow(c_star - lround(c_star) + interval, 2) *
+						b_star_lengths[k] <
+				rbound[k]) {
+				v[k] = lround(c_star) - interval;
+				queue.push_back(thread_args(
+					vector<double>(mu_t - (double)v[k] * mu[k]),
+					error + pow((c_star - v[k]), 2) * b_star_lengths[k], v));
+				n++;
+			}
 
-			// TRAVERSE RIGHT
-			c[j]++;
-			errVec[j + 1] +=
-				(-2.0 * c_star[j] + 2.0 * c[j] - 1) * mu[m - j - 1][m - j - 1];
+			if (error +
+					pow(c_star - lround(c_star) - interval, 2) *
+						b_star_lengths[k] <
+				rbound[k]) {
+				v[k] = lround(c_star) + interval;
+				queue.push_back(thread_args(
+					vector<double>(mu_t - (double)v[k] * mu[k]),
+					error + pow((c_star - v[k]), 2) * b_star_lengths[k], v));
+				n++;
+			}
+		}
+		k--;
+	}
+	cout << "breadth-first traversal till k = " << k << endl;
 
-			for (long i = m - j - 1; i >= 0; --i)
-				sigma[m - j - 1][i] -= mu[m - j - 1][i];
+	// check if Babai's only is enough
+	if (k < 0) {
+		cout << "finished with babai, traversed whole tree, computing solution"
+			 << endl;
+		vector<double> mu_t;
+		double error = numeric_limits<double>::max();
+		while (!queue.empty()) {
+			auto nodeargs = queue.front();
+			queue.pop_front();
+			if (error > get<1>(nodeargs)) {
+				// TODO optimization: move vector instead of copy it?
+				mu_t = get<0>(nodeargs);
+				error = get<1>(nodeargs);
+			}
+		}
+		vector<double> err_prime(m, 0);
+		for (size_t i = 0; i < m; ++i)
+			err_prime += mu_t[i] * B_star[i];
+		round(err_prime);
+		return (t - to_stl<long>(err_prime)) % q;
+	}
 
-			t_coeff[m - j - 1]--;
+// step 2
+// call LengthPruningThreads for every item in queue
+#ifdef DEBUG
+	size_t spawned_threads = 0;
+#endif
+	vector<future<tuple<vector<long>, double>>> future_solutions;
+	while (!queue.empty()) {
+		auto nodeargs = queue.front();
+		queue.pop_front();
+		// TODO optimization: move vector instead of copy it?
+		vector<double> mu_t = get<0>(nodeargs);
+		double error = get<1>(nodeargs);
+		vector<long> v = get<2>(nodeargs);
+		{ // lock mutex for thread count, wait until we can spawn
+			// another thread and spawn new thread
+			unique_lock<mutex> lock{mut_thread_count};
+			is_thread_free.wait(lock, [&] {
+				return number_of_threads < number_of_max_threads;
+			});
 
-			j++;
+			future_solutions.push_back(
+				async(launch::async, LengthPruningOptThread, B, mu,
+					  b_star_lengths, rbound, mu_t, k, error, q, v));
+
+			number_of_threads++;
+		} // mutex is freed, when lock goes out of scope
+#ifdef DEBUG
+		spawned_threads++;
+		{
+			unique_lock<mutex> lock{mut_cout};
+			cout << "spawned thread no. " << spawned_threads << endl;
+		}
+#endif
+	}
+
+	// step 3
+	// collect best solution from threads
+	vector<long> current_solution(m, 0);
+	for (auto &future_solution : future_solutions) {
+		auto const &solution = future_solution.get();
+		// TODO optimization: move vector instead of copy it?
+		vector<long> sol = get<0>(solution);
+		double error = get<1>(solution);
+
+		if (error <= current_error) {
+			{ // lock mutex for current_error
+				unique_lock<mutex> lock{mut_err};
+				current_error = error;
+			}
+			// TODO optimization: move vector instead of copy it?
+			current_solution = sol;
 		}
 	}
-
-RETURN_SPAWN_THREADS:
-	// after every thread is started, gather the results
-	auto actual_solution = solutions.begin();
-	vector<long> &current_solution = **actual_solution;
-	for (auto &future_errL2 : future_solutions) {
-		// get blocks until the thread has finished
-		auto const &actual_errL2 = future_errL2.get();
-
-		// 1. check wether the leaf corresponds to a new candidate solution
-		//    (distance of actual solution to original input equals length
-		//     of actual t vector, while solution is coded by the c vector)
-		if (actual_errL2 <= current_errL2) {
-			{ // lock mutex for errL2
-				unique_lock<mutex> lock{mut_errL2};
-				current_errL2 = actual_errL2;
-			} // mutex is freed
-			current_solution = **actual_solution;
-			// assert(current_solution.size() == t.size() &&
-			//		"solution has different size than t");
-		}
-		actual_solution++;
-	}
-
-	{
-		unique_lock<mutex> lock{mut_cout};
-		cout << "overall spawned threads: " << spawned_threads << endl;
-	}
-	// return the solution from the thread
 	return current_solution % q;
 }
 
-double LengthPruningOptThread(shared_ptr<vector<long>> p_solution,
-							  matrix<long> const &B, matrix<double> const &mu,
-							  vector<double> const &rbound,
-							  vector<double> const &t, vector<long> v,
-							  size_t lvl, vector<double> rho) {
+tuple<vector<long>, double>
+LengthPruningOptThread(matrix<long> const &B, matrix<double> const &mu,
+					   vector<double> const &b_star_lengths,
+					   vector<double> const &rbound, vector<double> const &mu_t,
+					   size_t lvl, double rho_init, long q,
+					   vector<long> v_breadth) {
 	// initialize
-	// size_t m = B.size()-lvl;
-	size_t m = B.size();
-	vector<double> r(m + 1);
-	for (size_t i = 0; i < m + 1; ++i)
-		r[i] = i;
-	vector<double> c(m);
+	size_t m = lvl + 1; // TODO correct?
+	matrix<double> sigma(m + 1, vector<double>(B.size(), 0));
+	sigma[m] = mu_t;
+	vector<double> c(B.size());
 	vector<long> w(m);
-	vector<long> v1(m);
-	// vector<double> rho(m+1, 0);
+	vector<long> v(m);
 
-	matrix<double> sigma(m + 1, vector<double>(m, 0));
+	vector<double> rho(m + 1, 0);
+	rho[m] = rho_init;
 
-	double thread_errL2 = 0.0;
-
-	vector<long> sol(m, 0); // solution-vector --EK
-
-	// babai
+	// babai for mu_t
 	for (size_t k = m; k > 0; --k) {
-		for (size_t i = m; i > k; --i)
-			sigma[i - 1][k - 1] =
-				sigma[i][k - 1] + (t[i - 1] - v[i - 1]) * mu[i - 1][k - 1];
-		c[k - 1] = t[k - 1] + sigma[k][k - 1];
+		c[k - 1] = sigma[k][k - 1];
 		v[k - 1] = lround(c[k - 1]);
 		w[k - 1] = 1;
-		rho[k - 1] = rho[k] + pow(c[k - 1] - v[k - 1], 2) * mu[k - 1][k - 1];
+		rho[k - 1] =
+			rho[k] + pow(c[k - 1] - v[k - 1], 2) * b_star_lengths[k - 1];
+		for (size_t i = 0; i < k; i++)
+			sigma[k - 1][i] = sigma[k][i] - (double)v[k - 1] * mu[k - 1][i];
 	}
 
-	v1 = v;
+	vector<long> v1(v);
 	size_t k = 0;
-	thread_errL2 = rho[k];
+	double error = rho[k];
 
-	m = m - lvl;
-
-	while (true) {
-		rho[k] = rho[k + 1] + pow((c[k] - v[k]), 2) * mu[k][k];
+	while (!got_sigterm) {
+		rho[k] = rho[k + 1] + pow((c[k] - v[k]), 2) * b_star_lengths[k];
 		if (rho[k] <= rbound[k]) // we generate the sequence of the form R_1^2 >
 								 // ... > R_m^2
 		{
 			if (k == 0) {
-				if (rho[k] <= thread_errL2) {
-					cout << "new solution found " << v << endl;
-					// save v:
+				if (rho[k] <= current_error) {
 					v1 = v;
-					thread_errL2 = rho[k];
-					cout << "of length " << rho[k] << endl;
+					error = rho[k];
+					{ // lock mutex for errL2
+						unique_lock<mutex> lock{mut_err};
+						current_error = rho[k];
+					}
+#ifdef DEBUG
+					{ // lock mutex for cout
+						unique_lock<mutex> lock{mut_cout};
+						cout << "new solution of length " << rho[k] << " found"
+							 << endl;
+						cout << "v         = " << v << endl;
+						cout << "v_breadth = " << v_breadth << endl;
+					}
+#endif
 				}
 
-				goto TRAVERSE_UP;
+				goto TRAVERSE_UP_LENGTH_THREAD;
 			} else {
+				for (size_t i = 0; i < k + 1; ++i)
+					sigma[k][i] = sigma[k + 1][i] - (double)v[k] * mu[k][i];
 				k--;
-				r[k] = max(r[k], r[k + 1]);
-				for (size_t i = r[k]; i > k; --i)
-					sigma[i][k] = sigma[i + 1][k] + (t[i] - v[i]) * mu[i][k];
-				c[k] = t[k] + sigma[k + 1][k];
+				c[k] = sigma[k + 1][k];
 				v[k] = lround(c[k]);
 				w[k] = 1;
 			}
 		} else {
-		TRAVERSE_UP:
+		TRAVERSE_UP_LENGTH_THREAD:
 			k++;
-			if (k == m) {
-				for (size_t i = 0; i < m; ++i)
-					*p_solution += v1[i] * B[i];
-				cout << "sol = " << *p_solution << endl;
-				goto RETURN_LENGTH_THREAD;
-			}
+			if (k == m)
+				break;
 
-			r[k] = k;
 			if (v[k] > c[k])
 				v[k] -= w[k];
 			else
@@ -352,11 +375,17 @@ double LengthPruningOptThread(shared_ptr<vector<long>> p_solution,
 		}
 	}
 
-RETURN_LENGTH_THREAD : { // lock mutex for thread count
-	unique_lock<mutex> lock{mut_thread_count};
-	number_of_threads--;
-} // mutex is freed, when lock goes out of scope
+	vector<long> sol(B.size(), 0);
+	for (size_t i = 0; i < m; ++i)
+		sol += v1[i] * B[i];
+	for (size_t i = m; i < B.size(); i++)
+		sol += v_breadth[i] * B[i];
+
+	{ // lock mutex for thread count
+		unique_lock<mutex> lock{mut_thread_count};
+		number_of_threads--;
+	}
 	is_thread_free.notify_one();
 
-	return thread_errL2;
+	return make_tuple(sol, error);
 }

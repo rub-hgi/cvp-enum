@@ -21,19 +21,16 @@
 #define __MATRIX_HELPER_H__
 
 #include <NTL/matrix.h>
-#include "NTL/mat_RR.h"
 #include <NTL/vector.h>
 #include <NTL/RR.h>
 #include <NTL/ZZ.h>
 
 #include <vector_templates.h>
 
-NTL::Mat<NTL::ZZ> RandomSqrMat(int n, int q);
+NTL::Mat<NTL::ZZ> RandomSqrMat(int n, long q);
 NTL::Vec<NTL::ZZ> RandomVec(int n, long q);
 NTL::Mat<NTL::ZZ> RemoveZeros(NTL::Mat<NTL::ZZ> A);
-
-NTL::Vec<NTL::RR> coeffs(NTL::Mat<NTL::ZZ> const &A,
-						 NTL::Vec<NTL::ZZ> const &t);
-std::vector<double> coeffs(matrix<long> const &A, std::vector<long> const &t);
+void round(NTL::Vec<NTL::RR> &t);
+void round(std::vector<double> &t);
 
 #endif // __MATRIX_HELPER_H__

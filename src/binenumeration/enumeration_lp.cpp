@@ -28,11 +28,12 @@ static mutex mut_cout;
 static condition_variable is_thread_free;
 
 // could be replaced by atomic<double>
-static mutex mut_errL2;
-static double current_errL2 = numeric_limits<double>::max();
+static mutex mut_err;
+static double current_error = numeric_limits<double>::max();
 
 double NearestPlanesLPOptThread(shared_ptr<vector<long>> p_solution,
 								matrix<long> const &B, matrix<double> const &mu,
+								vector<double> const &mu_lengths,
 								vector<long> const &d, matrix<double> sigma,
 								vector<long> c, size_t j_new,
 								vector<double> errVec);
@@ -49,8 +50,8 @@ vector<long> NearestPlanesLPOpt(matrix<long> const &B, vector<long> const &d,
 	vector<long> c(m);
 
 	matrix<double> mu = muGSO(B);
+	const vector<double> mu_lengths = VectorLengths(B_star);
 	vector<double> mu_t = muT(B_star, t);
-	vector<long> t_err(t);
 	vector<long> solution(m);
 	vector<double> errVec(m + 1, 0);
 
@@ -59,6 +60,7 @@ vector<long> NearestPlanesLPOpt(matrix<long> const &B, vector<long> const &d,
 	sigma[m] = mu_t;
 
 	// traverse search tree depth first
+	cout << "start while loop" << endl;
 	while (!got_sigterm) {
 		if (j != m) {
 			// update c_min[j], c_max[j]
@@ -73,9 +75,8 @@ vector<long> NearestPlanesLPOpt(matrix<long> const &B, vector<long> const &d,
 
 			// TRAVERSE DOWN
 			c[j] = c_min[j];
-
 			errVec[j + 1] =
-				errVec[j] + pow(c_star[j] - c[j], 2) * mu[m - j - 1][m - j - 1];
+				errVec[j] + pow(c_star[j] - c[j], 2) * mu_lengths[m - j - 1];
 
 			for (long i = m - j - 1; i >= 0; --i)
 				sigma[m - j - 1][i] =
@@ -84,7 +85,6 @@ vector<long> NearestPlanesLPOpt(matrix<long> const &B, vector<long> const &d,
 			j++;
 			if (errVec[j] > current_min)
 				goto TRAVERSE_UP_LP;
-
 		} else {
 			if (errVec[j] < current_min) {
 				current_min = errVec[j];
@@ -100,9 +100,8 @@ vector<long> NearestPlanesLPOpt(matrix<long> const &B, vector<long> const &d,
 			} while (c[j] >= c_max[j]);
 			// TRAVERSE RIGHT
 			c[j]++;
-
 			errVec[j + 1] +=
-				(-2.0 * c_star[j] + 2.0 * c[j] - 1) * mu[m - j - 1][m - j - 1];
+				(-2.0 * c_star[j] + 2.0 * c[j] - 1) * mu_lengths[m - j - 1];
 
 			for (long i = m - j - 1; i >= 0; --i)
 				sigma[m - j - 1][i] -= mu[m - j - 1][i];
@@ -112,7 +111,7 @@ vector<long> NearestPlanesLPOpt(matrix<long> const &B, vector<long> const &d,
 	}
 
 RETURN_LP:
-	vector<long> sol(m, 0);
+	vector<long> sol(t.size(), 0);
 	cout << " coefficients: " << solution << endl;
 	for (size_t i = 0; i < B.size(); ++i)
 		sol += solution[i] * B[m - i - 1];
@@ -122,10 +121,15 @@ RETURN_LP:
 vector<long> NearestPlanesLPOptParall(matrix<long> const &B,
 									  matrix<double> const &B_star,
 									  vector<long> const &d, vector<long> t,
-									  long q, size_t lvl) {
+									  long q, int n_threads, size_t lvl) {
+	if (n_threads != 0) {
+		number_of_max_threads = n_threads;
+	}
+
 	size_t spawned_threads = 0;
 	// initialize
 	const matrix<double> mu = muGSO(B);
+	const vector<double> mu_lengths = VectorLengths(B_star);
 	vector<double> mu_t = muT(B_star, t);
 
 	size_t j = 0;
@@ -145,6 +149,7 @@ vector<long> NearestPlanesLPOptParall(matrix<long> const &B,
 	sigma[m] = mu_t;
 
 	// iterate down to this level and spawn threads
+	cout << "start while loop" << endl;
 	while (!got_sigterm) {
 		// update c_min[j], c_max[j]
 		c_star[j] = sigma[m - j][m - j - 1];
@@ -161,7 +166,7 @@ vector<long> NearestPlanesLPOptParall(matrix<long> const &B,
 
 		if (j != lvl - 1) {
 			errVec[j + 1] =
-				errVec[j] + pow(c_star[j] - c[j], 2) * mu[m - j - 1][m - j - 1];
+				errVec[j] + pow(c_star[j] - c[j], 2) * mu_lengths[m - j - 1];
 
 			for (long i = m - j - 1; i >= 0; --i)
 				sigma[m - j - 1][i] =
@@ -174,7 +179,7 @@ vector<long> NearestPlanesLPOptParall(matrix<long> const &B,
 				vector<double> errVec_new = errVec;
 				errVec_new[j + 1] =
 					errVec[j] +
-					pow(c_star[j] - c[j], 2) * mu[m - j - 1][m - j - 1];
+					pow(c_star[j] - c[j], 2) * mu_lengths[m - j - 1];
 				matrix<double> sigma_new = sigma;
 				// current solution for new thread
 				for (long i = m - j - 1; i >= 0; --i)
@@ -200,8 +205,8 @@ vector<long> NearestPlanesLPOptParall(matrix<long> const &B,
 					// the current while loop
 					future_solutions.push_back(
 						async(launch::async, NearestPlanesLPOptThread,
-							  solutions.back(), B, mu, d, sigma_new, c, j + 1,
-							  errVec_new));
+							  solutions.back(), B, mu, mu_lengths, d, sigma_new,
+							  c, j + 1, errVec_new));
 					number_of_threads++;
 				} // mutex is freed, when lock goes out of scope
 				is_thread_free.notify_one();
@@ -220,7 +225,7 @@ vector<long> NearestPlanesLPOptParall(matrix<long> const &B,
 			// TRAVERSE RIGHT
 			c[j]++;
 			errVec[j + 1] +=
-				(-2.0 * c_star[j] + 2.0 * c[j] - 1) * mu[m - j - 1][m - j - 1];
+				(-2.0 * c_star[j] + 2.0 * c[j] - 1) * mu_lengths[m - j - 1];
 
 			for (long i = m - j - 1; i >= 0; --i)
 				sigma[m - j - 1][i] -= mu[m - j - 1][i];
@@ -240,10 +245,10 @@ RETURN_SPAWN_THREADS:
 		// 1. check wether the leaf corresponds to a new candidate solution
 		//    (distance of actual solution to original input equals length
 		//     of actual t vector, while solution is coded by the c vector)
-		if (actual_errL2 <= current_errL2) {
+		if (actual_errL2 <= current_error) {
 			{ // lock mutex for errL2
-				unique_lock<mutex> lock{mut_errL2};
-				current_errL2 = actual_errL2;
+				unique_lock<mutex> lock{mut_err};
+				current_error = actual_errL2;
 			} // mutex is freed
 			current_solution = **actual_solution;
 			// assert(current_solution.size() == t.size() &&
@@ -265,6 +270,7 @@ RETURN_SPAWN_THREADS:
 
 double NearestPlanesLPOptThread(shared_ptr<vector<long>> p_solution,
 								matrix<long> const &B, matrix<double> const &mu,
+								vector<double> const &mu_lengths,
 								vector<long> const &d, matrix<double> sigma,
 								vector<long> c, size_t lvl,
 								vector<double> errVec) {
@@ -293,23 +299,23 @@ double NearestPlanesLPOptThread(shared_ptr<vector<long>> p_solution,
 			// TRAVERSE DOWN
 			c[j] = c_min[j];
 			errVec[j + 1] =
-				errVec[j] + pow(c_star[j] - c[j], 2) * mu[m - j - 1][m - j - 1];
+				errVec[j] + pow(c_star[j] - c[j], 2) * mu_lengths[m - j - 1];
 
 			for (long i = m - j - 1; i >= 0; --i)
 				sigma[m - j - 1][i] =
 					sigma[m - j][i] - (double)c[j] * mu[m - j - 1][i];
 
 			j++;
-			if (errVec[j] > current_errL2)
+			if (errVec[j] > current_error)
 				goto TRAVERSE_UP_LP_THREAD;
 		} else {
 			// 1. check wether the leaf corresponds to a new candidate solution
 			//    (distance of actual solution to original input equals length
 			//     of actual t vector, while solution is coded by the c vector)
-			if (errVec[j] < current_errL2) {
+			if (errVec[j] < current_error) {
 				{ // lock mutex for errL2
-					unique_lock<mutex> lock{mut_errL2};
-					current_errL2 = errVec[j];
+					unique_lock<mutex> lock{mut_err};
+					current_error = errVec[j];
 				} // mutex is freed
 				thread_min = errVec[j];
 				// return c vector as solution, that means, we have to compute
@@ -333,7 +339,7 @@ double NearestPlanesLPOptThread(shared_ptr<vector<long>> p_solution,
 			// TRAVERSE RIGHT
 			c[j]++;
 			errVec[j + 1] +=
-				(-2.0 * c_star[j] + 2.0 * c[j] - 1) * mu[m - j - 1][m - j - 1];
+				(-2.0 * c_star[j] + 2.0 * c[j] - 1) * mu_lengths[m - j - 1];
 
 			for (long i = m - j - 1; i >= 0; --i)
 				sigma[m - j - 1][i] -= mu[m - j - 1][i];

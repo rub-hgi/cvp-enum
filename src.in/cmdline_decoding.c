@@ -47,8 +47,10 @@ const char *gengetopt_args_info_help[] = {
   "  the following options can be used to tune internal behaviour of program",
   "      --babaiBound=DOUBLE  when running LengthPruning, this factor controlls\n                             the generation of the R sequecne and especially\n                             when to switch to Babais enumeration\n                             (default=`4')",
   "      --dComp=ENUM         how to compute d Sequence for LP's enumeration\n                             (possible values=\"delta\", \"success\",\n                             \"binary\" default=`success')",
+  "      --rComp=ENUM         how to compute R Sequence for Length Pruning\n                             (possible values=\"length\", \"piece\"\n                             default=`length')",
   "      --factor=DOUBLE      controls the number of iterations done during\n                             enumeration  (default=`1.5')",
   "      --factor_bin=DOUBLE  controls the number of iterations done when using\n                             binary secret d sequences  (default=`1.0')",
+  "      --factor_lvl=LONG    used to balance short running threads by increasing\n                             the overall number of threads  (default=`8')",
   "  -d, --delta=DOUBLE       delta of BKZ reduction  (default=`0.99')",
   "      --tailfactor=INT     for sampling  (default=`13')",
   "      --rectangles=INT     number of rectangles for sampling  (default=`63')",
@@ -56,10 +58,11 @@ const char *gengetopt_args_info_help[] = {
   "  -p, --parallel           run parallel implementations of enumeration\n                             algorithms  (default=off)",
   "      --n-threads=INT      number of threads to use in parallel implementations\n                             (default=`0')",
   "  -P, --prune=INT          pruning factor for BKZ reduction  (default=`0')",
-  "  -2, --binary             generate error from binary uniform distribution {0,\n                             1}  (default=off)",
+  "  -2, --binary             generate error from binary  uniform distribution\n                             {0, 1}  (default=off)",
   "  -3, --trinary            generate error from trinary uniform distribution\n                             {-1, 0, 1}  (default=off)",
   "      --binary_secret      generate secrect from binary uniform distribution\n                             {0, 1}  (default=off)",
-  "      --binary_a           generate A from binary uniform distribution {0, 1}\n                             (default=off)",
+  "      --binary_lwe         generate A from binary uniform distribution {0, 1}\n                             (default=off)",
+  "      --binary_sis         generate A from binary uniform distribution {0, 1}\n                             (default=off)",
     0
 };
 
@@ -85,6 +88,7 @@ cmdline_parser_required2 (struct gengetopt_args_info *args_info, const char *pro
 
 const char *cmdline_parser_enumeration_values[] = {"ntl", "babai", "lp", "ln", 0}; /*< Possible values for enumeration. */
 const char *cmdline_parser_dComp_values[] = {"delta", "success", "binary", 0}; /*< Possible values for dComp. */
+const char *cmdline_parser_rComp_values[] = {"length", "piece", 0}; /*< Possible values for rComp. */
 
 static char *
 gengetopt_strdup (const char *s);
@@ -102,8 +106,10 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->enumeration_given = 0 ;
   args_info->babaiBound_given = 0 ;
   args_info->dComp_given = 0 ;
+  args_info->rComp_given = 0 ;
   args_info->factor_given = 0 ;
   args_info->factor_bin_given = 0 ;
+  args_info->factor_lvl_given = 0 ;
   args_info->delta_given = 0 ;
   args_info->tailfactor_given = 0 ;
   args_info->rectangles_given = 0 ;
@@ -114,7 +120,8 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->binary_given = 0 ;
   args_info->trinary_given = 0 ;
   args_info->binary_secret_given = 0 ;
-  args_info->binary_a_given = 0 ;
+  args_info->binary_lwe_given = 0 ;
+  args_info->binary_sis_given = 0 ;
 }
 
 static
@@ -132,10 +139,14 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->babaiBound_orig = NULL;
   args_info->dComp_arg = dComp_arg_success;
   args_info->dComp_orig = NULL;
+  args_info->rComp_arg = rComp_arg_length;
+  args_info->rComp_orig = NULL;
   args_info->factor_arg = 1.5;
   args_info->factor_orig = NULL;
   args_info->factor_bin_arg = 1.0;
   args_info->factor_bin_orig = NULL;
+  args_info->factor_lvl_arg = 8;
+  args_info->factor_lvl_orig = NULL;
   args_info->delta_arg = 0.99;
   args_info->delta_orig = NULL;
   args_info->tailfactor_arg = 13;
@@ -152,7 +163,8 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->binary_flag = 0;
   args_info->trinary_flag = 0;
   args_info->binary_secret_flag = 0;
-  args_info->binary_a_flag = 0;
+  args_info->binary_lwe_flag = 0;
+  args_info->binary_sis_flag = 0;
   
 }
 
@@ -171,19 +183,22 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->enumeration_help = gengetopt_args_info_help[7] ;
   args_info->babaiBound_help = gengetopt_args_info_help[11] ;
   args_info->dComp_help = gengetopt_args_info_help[12] ;
-  args_info->factor_help = gengetopt_args_info_help[13] ;
-  args_info->factor_bin_help = gengetopt_args_info_help[14] ;
-  args_info->delta_help = gengetopt_args_info_help[15] ;
-  args_info->tailfactor_help = gengetopt_args_info_help[16] ;
-  args_info->rectangles_help = gengetopt_args_info_help[17] ;
-  args_info->precision_help = gengetopt_args_info_help[18] ;
-  args_info->parallel_help = gengetopt_args_info_help[19] ;
-  args_info->n_threads_help = gengetopt_args_info_help[20] ;
-  args_info->prune_help = gengetopt_args_info_help[21] ;
-  args_info->binary_help = gengetopt_args_info_help[22] ;
-  args_info->trinary_help = gengetopt_args_info_help[23] ;
-  args_info->binary_secret_help = gengetopt_args_info_help[24] ;
-  args_info->binary_a_help = gengetopt_args_info_help[25] ;
+  args_info->rComp_help = gengetopt_args_info_help[13] ;
+  args_info->factor_help = gengetopt_args_info_help[14] ;
+  args_info->factor_bin_help = gengetopt_args_info_help[15] ;
+  args_info->factor_lvl_help = gengetopt_args_info_help[16] ;
+  args_info->delta_help = gengetopt_args_info_help[17] ;
+  args_info->tailfactor_help = gengetopt_args_info_help[18] ;
+  args_info->rectangles_help = gengetopt_args_info_help[19] ;
+  args_info->precision_help = gengetopt_args_info_help[20] ;
+  args_info->parallel_help = gengetopt_args_info_help[21] ;
+  args_info->n_threads_help = gengetopt_args_info_help[22] ;
+  args_info->prune_help = gengetopt_args_info_help[23] ;
+  args_info->binary_help = gengetopt_args_info_help[24] ;
+  args_info->trinary_help = gengetopt_args_info_help[25] ;
+  args_info->binary_secret_help = gengetopt_args_info_help[26] ;
+  args_info->binary_lwe_help = gengetopt_args_info_help[27] ;
+  args_info->binary_sis_help = gengetopt_args_info_help[28] ;
   
 }
 
@@ -275,8 +290,10 @@ cmdline_parser_release (struct gengetopt_args_info *args_info)
   free_string_field (&(args_info->enumeration_orig));
   free_string_field (&(args_info->babaiBound_orig));
   free_string_field (&(args_info->dComp_orig));
+  free_string_field (&(args_info->rComp_orig));
   free_string_field (&(args_info->factor_orig));
   free_string_field (&(args_info->factor_bin_orig));
+  free_string_field (&(args_info->factor_lvl_orig));
   free_string_field (&(args_info->delta_orig));
   free_string_field (&(args_info->tailfactor_orig));
   free_string_field (&(args_info->rectangles_orig));
@@ -374,10 +391,14 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "babaiBound", args_info->babaiBound_orig, 0);
   if (args_info->dComp_given)
     write_into_file(outfile, "dComp", args_info->dComp_orig, cmdline_parser_dComp_values);
+  if (args_info->rComp_given)
+    write_into_file(outfile, "rComp", args_info->rComp_orig, cmdline_parser_rComp_values);
   if (args_info->factor_given)
     write_into_file(outfile, "factor", args_info->factor_orig, 0);
   if (args_info->factor_bin_given)
     write_into_file(outfile, "factor_bin", args_info->factor_bin_orig, 0);
+  if (args_info->factor_lvl_given)
+    write_into_file(outfile, "factor_lvl", args_info->factor_lvl_orig, 0);
   if (args_info->delta_given)
     write_into_file(outfile, "delta", args_info->delta_orig, 0);
   if (args_info->tailfactor_given)
@@ -398,8 +419,10 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "trinary", 0, 0 );
   if (args_info->binary_secret_given)
     write_into_file(outfile, "binary_secret", 0, 0 );
-  if (args_info->binary_a_given)
-    write_into_file(outfile, "binary_a", 0, 0 );
+  if (args_info->binary_lwe_given)
+    write_into_file(outfile, "binary_lwe", 0, 0 );
+  if (args_info->binary_sis_given)
+    write_into_file(outfile, "binary_sis", 0, 0 );
   
 
   i = EXIT_SUCCESS;
@@ -729,8 +752,10 @@ cmdline_parser_internal (
         { "enumeration",	1, NULL, 'e' },
         { "babaiBound",	1, NULL, 0 },
         { "dComp",	1, NULL, 0 },
+        { "rComp",	1, NULL, 0 },
         { "factor",	1, NULL, 0 },
         { "factor_bin",	1, NULL, 0 },
+        { "factor_lvl",	1, NULL, 0 },
         { "delta",	1, NULL, 'd' },
         { "tailfactor",	1, NULL, 0 },
         { "rectangles",	1, NULL, 0 },
@@ -741,7 +766,8 @@ cmdline_parser_internal (
         { "binary",	0, NULL, '2' },
         { "trinary",	0, NULL, '3' },
         { "binary_secret",	0, NULL, 0 },
-        { "binary_a",	0, NULL, 0 },
+        { "binary_lwe",	0, NULL, 0 },
+        { "binary_sis",	0, NULL, 0 },
         { 0,  0, 0, 0 }
       };
 
@@ -867,7 +893,7 @@ cmdline_parser_internal (
             goto failure;
         
           break;
-        case '2':	/* generate error from binary uniform distribution {0, 1}.  */
+        case '2':	/* generate error from binary  uniform distribution     {0, 1}.  */
         
         
           if (update_arg((void *)&(args_info->binary_flag), 0, &(args_info->binary_given),
@@ -917,6 +943,20 @@ cmdline_parser_internal (
               goto failure;
           
           }
+          /* how to compute R Sequence for Length Pruning.  */
+          else if (strcmp (long_options[option_index].name, "rComp") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->rComp_arg), 
+                 &(args_info->rComp_orig), &(args_info->rComp_given),
+                &(local_args_info.rComp_given), optarg, cmdline_parser_rComp_values, "length", ARG_ENUM,
+                check_ambiguity, override, 0, 0,
+                "rComp", '-',
+                additional_error))
+              goto failure;
+          
+          }
           /* controls the number of iterations done during enumeration.  */
           else if (strcmp (long_options[option_index].name, "factor") == 0)
           {
@@ -941,6 +981,20 @@ cmdline_parser_internal (
                 &(local_args_info.factor_bin_given), optarg, 0, "1.0", ARG_DOUBLE,
                 check_ambiguity, override, 0, 0,
                 "factor_bin", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* used to balance short running threads by increasing the overall number of threads.  */
+          else if (strcmp (long_options[option_index].name, "factor_lvl") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->factor_lvl_arg), 
+                 &(args_info->factor_lvl_orig), &(args_info->factor_lvl_given),
+                &(local_args_info.factor_lvl_given), optarg, 0, "8", ARG_LONG,
+                check_ambiguity, override, 0, 0,
+                "factor_lvl", '-',
                 additional_error))
               goto failure;
           
@@ -1014,13 +1068,25 @@ cmdline_parser_internal (
           
           }
           /* generate A from binary uniform distribution {0, 1}.  */
-          else if (strcmp (long_options[option_index].name, "binary_a") == 0)
+          else if (strcmp (long_options[option_index].name, "binary_lwe") == 0)
           {
           
           
-            if (update_arg((void *)&(args_info->binary_a_flag), 0, &(args_info->binary_a_given),
-                &(local_args_info.binary_a_given), optarg, 0, 0, ARG_FLAG,
-                check_ambiguity, override, 1, 0, "binary_a", '-',
+            if (update_arg((void *)&(args_info->binary_lwe_flag), 0, &(args_info->binary_lwe_given),
+                &(local_args_info.binary_lwe_given), optarg, 0, 0, ARG_FLAG,
+                check_ambiguity, override, 1, 0, "binary_lwe", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* generate A from binary uniform distribution {0, 1}.  */
+          else if (strcmp (long_options[option_index].name, "binary_sis") == 0)
+          {
+          
+          
+            if (update_arg((void *)&(args_info->binary_sis_flag), 0, &(args_info->binary_sis_given),
+                &(local_args_info.binary_sis_given), optarg, 0, 0, ARG_FLAG,
+                check_ambiguity, override, 1, 0, "binary_sis", '-',
                 additional_error))
               goto failure;
           

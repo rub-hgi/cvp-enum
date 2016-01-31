@@ -36,6 +36,7 @@ extern "C" {
 
 enum enum_enumeration { enumeration__NULL = -1, enumeration_arg_ntl = 0, enumeration_arg_babai, enumeration_arg_lp, enumeration_arg_ln };
 enum enum_dComp { dComp__NULL = -1, dComp_arg_delta = 0, dComp_arg_success, dComp_arg_binary };
+enum enum_rComp { rComp__NULL = -1, rComp_arg_length = 0, rComp_arg_piece };
 
 /** @brief Where the command line options are stored */
 struct gengetopt_args_info
@@ -63,12 +64,18 @@ struct gengetopt_args_info
   enum enum_dComp dComp_arg;	/**< @brief how to compute d Sequence for LP's enumeration (default='success').  */
   char * dComp_orig;	/**< @brief how to compute d Sequence for LP's enumeration original value given at command line.  */
   const char *dComp_help; /**< @brief how to compute d Sequence for LP's enumeration help description.  */
+  enum enum_rComp rComp_arg;	/**< @brief how to compute R Sequence for Length Pruning (default='length').  */
+  char * rComp_orig;	/**< @brief how to compute R Sequence for Length Pruning original value given at command line.  */
+  const char *rComp_help; /**< @brief how to compute R Sequence for Length Pruning help description.  */
   double factor_arg;	/**< @brief controls the number of iterations done during enumeration (default='1.5').  */
   char * factor_orig;	/**< @brief controls the number of iterations done during enumeration original value given at command line.  */
   const char *factor_help; /**< @brief controls the number of iterations done during enumeration help description.  */
   double factor_bin_arg;	/**< @brief controls the number of iterations done when using binary secret d sequences (default='1.0').  */
   char * factor_bin_orig;	/**< @brief controls the number of iterations done when using binary secret d sequences original value given at command line.  */
   const char *factor_bin_help; /**< @brief controls the number of iterations done when using binary secret d sequences help description.  */
+  long factor_lvl_arg;	/**< @brief used to balance short running threads by increasing the overall number of threads (default='8').  */
+  char * factor_lvl_orig;	/**< @brief used to balance short running threads by increasing the overall number of threads original value given at command line.  */
+  const char *factor_lvl_help; /**< @brief used to balance short running threads by increasing the overall number of threads help description.  */
   double delta_arg;	/**< @brief delta of BKZ reduction (default='0.99').  */
   char * delta_orig;	/**< @brief delta of BKZ reduction original value given at command line.  */
   const char *delta_help; /**< @brief delta of BKZ reduction help description.  */
@@ -97,8 +104,10 @@ struct gengetopt_args_info
   unsigned int enumeration_given ;	/**< @brief Whether enumeration was given.  */
   unsigned int babaiBound_given ;	/**< @brief Whether babaiBound was given.  */
   unsigned int dComp_given ;	/**< @brief Whether dComp was given.  */
+  unsigned int rComp_given ;	/**< @brief Whether rComp was given.  */
   unsigned int factor_given ;	/**< @brief Whether factor was given.  */
   unsigned int factor_bin_given ;	/**< @brief Whether factor_bin was given.  */
+  unsigned int factor_lvl_given ;	/**< @brief Whether factor_lvl was given.  */
   unsigned int delta_given ;	/**< @brief Whether delta was given.  */
   unsigned int parallel_given ;	/**< @brief Whether parallel was given.  */
   unsigned int n_threads_given ;	/**< @brief Whether n-threads was given.  */
@@ -232,6 +241,7 @@ int cmdline_parser_required (struct gengetopt_args_info *args_info,
 
 extern const char *cmdline_parser_enumeration_values[];  /**< @brief Possible values for enumeration. */
 extern const char *cmdline_parser_dComp_values[];  /**< @brief Possible values for dComp. */
+extern const char *cmdline_parser_rComp_values[];  /**< @brief Possible values for rComp. */
 
 
 #ifdef __cplusplus

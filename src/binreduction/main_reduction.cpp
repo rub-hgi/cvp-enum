@@ -56,11 +56,12 @@ int main(int argc, char *argv[]) {
 	ofile_arg = string(args_info.ofile_arg);
 	prune_arg = args_info.prune_arg;
 
+	cmdline_parser_free(&args_info);
+
 	Mat<ZZ> A = Read<Mat<ZZ>>(ifile_arg);
 	Mat<ZZ> A_red = ReduceMatrix(A, delta_arg, beta_arg, prune_arg);
 
 	Write(ofile_arg, A_red);
 
-	cmdline_parser_free(&args_info);
 	return EXIT_SUCCESS;
 }

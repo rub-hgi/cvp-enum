@@ -46,8 +46,10 @@ const char *gengetopt_args_info_help[] = {
   "  the following options can be used to tune internal behaviour of program",
   "      --babaiBound=DOUBLE      when running LengthPruning, this factor\n                                 controlls the generation of the R sequecne and\n                                 especially when to switch to Babais\n                                 enumeration  (default=`4')",
   "      --dComp=ENUM             how to compute d Sequence for LP's enumeration\n                                 (possible values=\"delta\", \"success\",\n                                 \"binary\" default=`success')",
+  "      --rComp=ENUM             how to compute R Sequence for Length Pruning\n                                 (possible values=\"length\", \"piece\"\n                                 default=`length')",
   "      --factor=DOUBLE          controls the number of iterations done during\n                                 enumeration  (default=`1.5')",
   "      --factor_bin=DOUBLE      controls the number of iterations done when\n                                 using binary secret d sequences\n                                 (default=`1.0')",
+  "      --factor_lvl=LONG        used to balance short running threads by\n                                 increasing the overall number of threads\n                                 (default=`8')",
   "  -d, --delta=DOUBLE           delta of BKZ reduction  (default=`0.99')",
   "  -p, --parallel               run parallel implementations of enumeration\n                                 algorithms  (default=off)",
   "      --n-threads=INT          number of threads to use in parallel\n                                 implementations  (default=`0')",
@@ -81,6 +83,7 @@ cmdline_parser_required2 (struct gengetopt_args_info *args_info, const char *pro
 
 const char *cmdline_parser_enumeration_values[] = {"ntl", "babai", "lp", "ln", 0}; /*< Possible values for enumeration. */
 const char *cmdline_parser_dComp_values[] = {"delta", "success", "binary", 0}; /*< Possible values for dComp. */
+const char *cmdline_parser_rComp_values[] = {"length", "piece", 0}; /*< Possible values for rComp. */
 
 static char *
 gengetopt_strdup (const char *s);
@@ -97,8 +100,10 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->enumeration_given = 0 ;
   args_info->babaiBound_given = 0 ;
   args_info->dComp_given = 0 ;
+  args_info->rComp_given = 0 ;
   args_info->factor_given = 0 ;
   args_info->factor_bin_given = 0 ;
+  args_info->factor_lvl_given = 0 ;
   args_info->delta_given = 0 ;
   args_info->parallel_given = 0 ;
   args_info->n_threads_given = 0 ;
@@ -122,10 +127,14 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->babaiBound_orig = NULL;
   args_info->dComp_arg = dComp_arg_success;
   args_info->dComp_orig = NULL;
+  args_info->rComp_arg = rComp_arg_length;
+  args_info->rComp_orig = NULL;
   args_info->factor_arg = 1.5;
   args_info->factor_orig = NULL;
   args_info->factor_bin_arg = 1.0;
   args_info->factor_bin_orig = NULL;
+  args_info->factor_lvl_arg = 8;
+  args_info->factor_lvl_orig = NULL;
   args_info->delta_arg = 0.99;
   args_info->delta_orig = NULL;
   args_info->parallel_flag = 0;
@@ -154,15 +163,17 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->enumeration_help = gengetopt_args_info_help[6] ;
   args_info->babaiBound_help = gengetopt_args_info_help[10] ;
   args_info->dComp_help = gengetopt_args_info_help[11] ;
-  args_info->factor_help = gengetopt_args_info_help[12] ;
-  args_info->factor_bin_help = gengetopt_args_info_help[13] ;
-  args_info->delta_help = gengetopt_args_info_help[14] ;
-  args_info->parallel_help = gengetopt_args_info_help[15] ;
-  args_info->n_threads_help = gengetopt_args_info_help[16] ;
-  args_info->ifile_help = gengetopt_args_info_help[17] ;
-  args_info->ofile_help = gengetopt_args_info_help[18] ;
-  args_info->binary_secret_help = gengetopt_args_info_help[19] ;
-  args_info->binary_a_help = gengetopt_args_info_help[20] ;
+  args_info->rComp_help = gengetopt_args_info_help[12] ;
+  args_info->factor_help = gengetopt_args_info_help[13] ;
+  args_info->factor_bin_help = gengetopt_args_info_help[14] ;
+  args_info->factor_lvl_help = gengetopt_args_info_help[15] ;
+  args_info->delta_help = gengetopt_args_info_help[16] ;
+  args_info->parallel_help = gengetopt_args_info_help[17] ;
+  args_info->n_threads_help = gengetopt_args_info_help[18] ;
+  args_info->ifile_help = gengetopt_args_info_help[19] ;
+  args_info->ofile_help = gengetopt_args_info_help[20] ;
+  args_info->binary_secret_help = gengetopt_args_info_help[21] ;
+  args_info->binary_a_help = gengetopt_args_info_help[22] ;
   
 }
 
@@ -253,8 +264,10 @@ cmdline_parser_release (struct gengetopt_args_info *args_info)
   free_string_field (&(args_info->enumeration_orig));
   free_string_field (&(args_info->babaiBound_orig));
   free_string_field (&(args_info->dComp_orig));
+  free_string_field (&(args_info->rComp_orig));
   free_string_field (&(args_info->factor_orig));
   free_string_field (&(args_info->factor_bin_orig));
+  free_string_field (&(args_info->factor_lvl_orig));
   free_string_field (&(args_info->delta_orig));
   free_string_field (&(args_info->n_threads_orig));
   free_string_field (&(args_info->ifile_arg));
@@ -350,10 +363,14 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "babaiBound", args_info->babaiBound_orig, 0);
   if (args_info->dComp_given)
     write_into_file(outfile, "dComp", args_info->dComp_orig, cmdline_parser_dComp_values);
+  if (args_info->rComp_given)
+    write_into_file(outfile, "rComp", args_info->rComp_orig, cmdline_parser_rComp_values);
   if (args_info->factor_given)
     write_into_file(outfile, "factor", args_info->factor_orig, 0);
   if (args_info->factor_bin_given)
     write_into_file(outfile, "factor_bin", args_info->factor_bin_orig, 0);
+  if (args_info->factor_lvl_given)
+    write_into_file(outfile, "factor_lvl", args_info->factor_lvl_orig, 0);
   if (args_info->delta_given)
     write_into_file(outfile, "delta", args_info->delta_orig, 0);
   if (args_info->parallel_given)
@@ -699,8 +716,10 @@ cmdline_parser_internal (
         { "enumeration",	1, NULL, 'e' },
         { "babaiBound",	1, NULL, 0 },
         { "dComp",	1, NULL, 0 },
+        { "rComp",	1, NULL, 0 },
         { "factor",	1, NULL, 0 },
         { "factor_bin",	1, NULL, 0 },
+        { "factor_lvl",	1, NULL, 0 },
         { "delta",	1, NULL, 'd' },
         { "parallel",	0, NULL, 'p' },
         { "n-threads",	1, NULL, 0 },
@@ -863,6 +882,20 @@ cmdline_parser_internal (
               goto failure;
           
           }
+          /* how to compute R Sequence for Length Pruning.  */
+          else if (strcmp (long_options[option_index].name, "rComp") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->rComp_arg), 
+                 &(args_info->rComp_orig), &(args_info->rComp_given),
+                &(local_args_info.rComp_given), optarg, cmdline_parser_rComp_values, "length", ARG_ENUM,
+                check_ambiguity, override, 0, 0,
+                "rComp", '-',
+                additional_error))
+              goto failure;
+          
+          }
           /* controls the number of iterations done during enumeration.  */
           else if (strcmp (long_options[option_index].name, "factor") == 0)
           {
@@ -887,6 +920,20 @@ cmdline_parser_internal (
                 &(local_args_info.factor_bin_given), optarg, 0, "1.0", ARG_DOUBLE,
                 check_ambiguity, override, 0, 0,
                 "factor_bin", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* used to balance short running threads by increasing the overall number of threads.  */
+          else if (strcmp (long_options[option_index].name, "factor_lvl") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->factor_lvl_arg), 
+                 &(args_info->factor_lvl_orig), &(args_info->factor_lvl_given),
+                &(local_args_info.factor_lvl_given), optarg, 0, "8", ARG_LONG,
+                check_ambiguity, override, 0, 0,
+                "factor_lvl", '-',
                 additional_error))
               goto failure;
           

@@ -54,14 +54,16 @@ struct gengetopt_args_info
   char * ofile_arg;	/**< @brief output file (default='samples').  */
   char * ofile_orig;	/**< @brief output file original value given at command line.  */
   const char *ofile_help; /**< @brief output file help description.  */
-  int binary_flag;	/**< @brief generate error from binary uniform distribution {0, 1} (default=off).  */
-  const char *binary_help; /**< @brief generate error from binary uniform distribution {0, 1} help description.  */
+  int binary_flag;	/**< @brief generate error from binary  uniform distribution     {0, 1} (default=off).  */
+  const char *binary_help; /**< @brief generate error from binary  uniform distribution     {0, 1} help description.  */
   int trinary_flag;	/**< @brief generate error from trinary uniform distribution {-1, 0, 1} (default=off).  */
   const char *trinary_help; /**< @brief generate error from trinary uniform distribution {-1, 0, 1} help description.  */
   int binary_secret_flag;	/**< @brief generate secrect from binary uniform distribution {0, 1} (default=off).  */
   const char *binary_secret_help; /**< @brief generate secrect from binary uniform distribution {0, 1} help description.  */
-  int binary_a_flag;	/**< @brief generate A from binary uniform distribution {0, 1} (default=off).  */
-  const char *binary_a_help; /**< @brief generate A from binary uniform distribution {0, 1} help description.  */
+  int binary_lwe_flag;	/**< @brief generate A from binary uniform distribution {0, 1} (default=off).  */
+  const char *binary_lwe_help; /**< @brief generate A from binary uniform distribution {0, 1} help description.  */
+  int binary_sis_flag;	/**< @brief generate A from binary uniform distribution {0, 1} (default=off).  */
+  const char *binary_sis_help; /**< @brief generate A from binary uniform distribution {0, 1} help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
@@ -73,7 +75,8 @@ struct gengetopt_args_info
   unsigned int binary_given ;	/**< @brief Whether binary was given.  */
   unsigned int trinary_given ;	/**< @brief Whether trinary was given.  */
   unsigned int binary_secret_given ;	/**< @brief Whether binary_secret was given.  */
-  unsigned int binary_a_given ;	/**< @brief Whether binary_a was given.  */
+  unsigned int binary_lwe_given ;	/**< @brief Whether binary_lwe was given.  */
+  unsigned int binary_sis_given ;	/**< @brief Whether binary_sis was given.  */
 
 } ;
 
