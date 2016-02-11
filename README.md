@@ -7,6 +7,13 @@ NTL. In order to compile and test this package, these dependencies are needed.
 The following commands generate the build scripts, check for dependencies and
 compile the source code.
 
+```
 	cd build
 	cmake ..
 	make
+```
+
+**TODO**:
+  * Add Example Folder
+    * Describe how to reproduce Examples
+  * Describe commandline parameter
