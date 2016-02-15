@@ -46,6 +46,7 @@ std::vector<long> NearestPlanesNTL(matrix<long> const &B,
  *
  * @params B the lattice basis
  * @params t the target point
+ * @params B_star is GSO(B)
  */
 std::vector<long> NearestPlanesBabaiOpt(matrix<long> const &B,
 										std::vector<long> const &t,
@@ -56,19 +57,33 @@ std::vector<long> NearestPlanesBabaiOpt(matrix<long> const &B,
  * \brief takes a lattice basis and a target point and returns the 'relative
  *        closest' lattice points using Lindner Peikert's (LP's) algorithm
  *        http://www.cc.gatech.edu/~cpeikert/pubs/lwe-analysis.pdf
- *        *Rec is a recursive, *Iter an iterative implementation.
+ *      
  *
- * @params B the lattice basis
- * @params D precomputed gram-schmidt orthogonalization of B
- * @params d used to control recursion, in order to reduce error probability
+ * @params B the (reduced) lattice basis
+ * @params d determines the number of planes to project on
  * @params t the target point
  * @params q the modulus
+ * @params B_star is GSO(B)
  */
 std::vector<long> NearestPlanesLPOpt(matrix<long> const &B,
 									 std::vector<long> const &d,
 									 std::vector<long> const &t, long q,
 									 matrix<double> const &B_star);
-
+/**
+ * NearestPlanesLPOptPaeallel
+ * \brief takes a lattice basis and a target point and returns the 'relative
+ *        closest' lattice points using Lindner Peikert's (LP's) algorithm
+ *        http://www.cc.gatech.edu/~cpeikert/pubs/lwe-analysis.pdf
+ *        in parallel
+ *
+ * @params B the lattice basis
+ * @params d determines the number of planes to project on
+ * @params t the target point
+ * @params q the modulus
+ * @params B_star is GSO(B)
+ * @params n_threads number of processors available
+ * @params lvl level of the enumerarion tree to start parallel threads from. Determined by ComputeLvlNP
+ */
 std::vector<long> NearestPlanesLPOptParall(matrix<long> const &B,
 										   matrix<double> const &B_star,
 										   std::vector<long> const &d,
@@ -78,37 +93,60 @@ std::vector<long> NearestPlanesLPOptParall(matrix<long> const &B,
 /**
  * ComputeD
  * \brief returns a vector of d_i's for the NearestPlanes algorithm by Lindner
- *        and Peikert as proposed in "Elliptic Nearest Planes and the Complexity
- *        of Lattice-Based LWE Decoding"
+ *        and Peikert 
  *
- * @params B the basis
- * @params delta root hermite factor of reduction algorithm used before
- *               NearestPlanes
- * @params beta blocksize of BKZ reduction of B
- * @params s is used to blur the discrete structure of lattices over Z^n
+ * @params A_star_length lengths of vectors of Gram-Schmidt bassis
+ * @params s Gaussian distribution parameter
+ * @params q modulus
+ * @params beta block size of BKZ run on basis
+ * @params factor addition scaling factor to generate a sequence with larger/smaller success probability. By default, factor=1.0. 
  */
-std::vector<long> ComputeD(matrix<long> const &B, double s);
-std::vector<long> ComputeD_success(std::vector<double> A_star_length, int beta,
-								   double s, int n_in, long q, double factor);
-std::vector<long> ComputeD_binary(matrix<double> A_mu, double s, int n,
-								  double factor, double factor_bin);
-std::vector<double> ComputeR_LP(matrix<double> A_mu, std::vector<long> d);
+std::vector<long> ComputeD(std::vector<double> A_star_length, int beta,
+								   double s, long q, double factor);
 
 /**
- * LengthPruning
+ * ComputeD
+ * \brief returns a vector of d_i's for the NearestPlanes algorithm by Lindner
+ *        and Peikert for binary/ternary error 
+ *
+ * @params A_star_length lengths of vectors of Gram-Schmidt bassis
+ * @params s Gaussian distribution parameter
+ * @params q modulus
+ * @params beta block size of BKZ run on basis
+ * @params factor addition scaling factor to generate a sequence with larger/smaller success probability. By default, factor=1.0. 
+ */
+std::vector<long> ComputeD_binary(std::vector<double> A_star_length,
+								  double factor, double factor_bin);
+std::vector<double> ComputeR_LP(std::vector<double> A_star_length, std::vector<long> d);
+
+/**
+ * LengthPruningOpt
  * \brief takes a lattice basis and a target point and returns the 'relative
  *        closest' lattice points using Pruned Enumeration algorithm
  *        https://hal.inria.fr/hal-00864361/PDF/LiuNguyen.pdf
  *
  * @params B the lattice basis
- * @params t the target point
- * @params s the standard deviation of the sample-error
+ * @params B_star = GSO(B)
+ * @params R the bounds on squared error-lengths returned by ComputeRlength
+ * @params t the targer
  * @params q the modulus
  */
 std::vector<long> LengthPruningOpt(matrix<long> const &B,
 								   matrix<double> const &B_star,
 								   std::vector<double> const &R,
 								   std::vector<long> const &t, long q);
+
+/**
+ * LengthPruning
+ * \brief parallel version of LengthPruningOpt
+ * @params B the lattice basis
+ * @params B_star = GSO(B)
+ * @params R the bounds on squared error-lengths returned by ComputeRlength
+ * @params t the targer
+ * @params q the modulus
+ * @params n_threads number of availabe processors
+ * @params factor_lvl start the threads when nNodes(k) >= factor_lvl*n_threads, where nNodes(k) is the number of nodes on level k
+ */
 std::vector<long> LengthPruningOptParall(matrix<long> const &B,
 										 matrix<double> const &B_star,
 										 std::vector<double> const &R,
@@ -117,20 +155,30 @@ std::vector<long> LengthPruningOptParall(matrix<long> const &B,
 
 /**
  * ComputeRlength
- * \brief returns a vector for computing the interval during length pruning
- *
- * @params m number of samples
- * @params s the standard deviation of the sample-error
- * @params factor to tune the number of iterations
+ * \brief computes the squared error-length allowed on each enumeration level. I.e. \|e[m-i] \|^2 <= R[m-i]. Note R[1] > R[2] > ... R[m]
+ * if the squared length of the Gram-Schmidt vectors > babai_bound * s^2, start Babai (one child allowed).
+ * @params A_star_length lengths of vectors of Gram-Schmidt bassis
+ * @params s Gaussian distribution parameter
+ * @params q modulus
+ * @params factor additional scaling factor to generate a sequence with larger/smaller success probability. By default, factor=1.0.
+ * @params babaiBound controls when to start Babai's CVP
  */
-std::vector<double> ComputeRlength(matrix<double> A_mu, double s, double factor,
+std::vector<double> ComputeRlength(std::vector<double> A_star_length, double s, double factor,
 								   double babaiBound);
+
+/**
+ * ComputeR_LP
+ * \brief computes the squared error-length allowed on each enumeration level when the Lindner-Peikert enumeration is used. Currently, not in use.
+ */
 std::vector<double> ComputeR_PiecewiseB(std::vector<double> b_star_length,
 										double s, double factor);
 
 /**
  * ComputeLvl
- * \brief return the lvl from were to start the parallel runs
+ * \brief returns the lvl to start the parallel runs on
+ * @params d - the d-sequence returned by ComputeD
+ * @params n_threads number of availabe processors
+ * @params factor_lvl start the threads when nNodes(k) >= factor_lvl*n_threads, where nNodes(k) is the number of nodes on level k
  */
 size_t ComputeLvlNP(std::vector<long> const &d, int n_threads, long factor_lvl);
 

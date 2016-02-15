@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.0)
+cmake_minimum_required (VERSION 2.8)
 project (cvp-enum)
 
 # The version number.
@@ -34,7 +34,7 @@ LIST(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/build/CMakeModules")
 # Look for needed libraries
 find_package(GMP REQUIRED)
 find_package(NTL REQUIRED)
-find_package(FPLLL REQUIRED)
+#find_package(FPLLL REQUIRED)
 
 # Helper Library
 add_library(toolbox STATIC

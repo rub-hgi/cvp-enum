@@ -23,6 +23,15 @@
 #include <NTL/matrix.h>
 #include <NTL/ZZ.h>
 
+/**
+ * ReduceMatrix
+ * \brief call NTL's BKZ reduction with block-size beta
+ * @params A input basis
+ * @params delta reduction parameter, set to 0.99
+ * @params beta block-size
+ * @params prune pruning factor (doesn't seem to help)
+ */
+
 NTL::Mat<NTL::ZZ> ReduceMatrix(NTL::Mat<NTL::ZZ> A, double delta, int beta,
 							   int prune);
 

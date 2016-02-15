@@ -218,7 +218,7 @@ vector<long> LengthPruningOptParall(matrix<long> const &B,
 	}
 	cout << "breadth-first traversal till k = " << k << endl;
 
-	// check if Babai's only is enough
+	// check if Babai is enough
 	if (k < 0) {
 		cout << "finished with babai, traversed whole tree, computing solution"
 			 << endl;
@@ -304,7 +304,7 @@ LengthPruningOptThread(matrix<long> const &B, matrix<double> const &mu,
 					   vector<long> v_breadth) {
 	// initialize
 	size_t m = lvl + 1; // TODO correct?
-	matrix<double> sigma(m + 1, vector<double>(B.size(), 0));
+	matrix<double> sigma(m + 1, vector<double>(B.size(), 0)); // sigma matrix has different meaning from sigma_matrix in GNR pruning
 	sigma[m] = mu_t;
 	vector<double> c(B.size());
 	vector<long> w(m);

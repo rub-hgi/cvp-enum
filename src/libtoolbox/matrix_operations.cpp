@@ -150,52 +150,6 @@ vector<double> muT(matrix<double> const &B_star_std,
 	return to_stl<double>(result);
 }
 
-vector<double> coeffs(matrix<long> const &A, vector<long> const &t) {
-	Mat<RR> A_ntl = to_ntl<RR>(A);
-	Vec<RR> t_ntl = to_ntl<RR>(t);
-	RR det;
-	Vec<RR> t_coeff;
-	t_coeff.SetLength(A_ntl.NumRows());
-	solve(det, t_coeff, A_ntl, t_ntl);
-	return to_stl<double>(t_coeff);
-}
-
-vector<double> mu_t2t_coeff(matrix<long> const &A, Mat<RR> A_star_transp,
-							vector<double> A_star_lengths, long q,
-							vector<double> const &mu_t) {
-	RR det;
-	Vec<RR> t;
-	Vec<RR> mu_t_ntl = to_ntl<RR>(mu_t);
-	for (long i = 0; i < mu_t_ntl.length(); ++i)
-		mu_t_ntl[i] *= A_star_lengths[i];
-	solve(det, t, A_star_transp, mu_t_ntl);
-	round(t);
-
-	Vec<RR> t_coeff;
-	solve(det, t_coeff, to_ntl<RR>(A), t);
-
-	return to_stl<double>(t_coeff);
-}
-
-// to compute the coeff. of vector t with respect to basis B_star
-vector<double> GSO_coeff(matrix<double> B_star, vector<long> t) {
-	size_t m = t.size();
-
-	Vec<RR> t_star;
-	Vec<RR> t_conv = to_ntl<RR>(t);
-	t_star.SetLength((int)m);
-
-	mul(t_star, t_conv, to_ntl<RR>(B_star)); //--cases error TO DEBUG.
-
-	//- to test wheter t_star*B_star = t --EK
-	Vec<RR> tTest;
-	tTest.SetLength((int)m);
-	for (size_t i = 0; i < m; ++i) {
-		tTest = tTest + t_star[(int)i] * to_ntl<RR>(B_star[i]);
-	}
-
-	return to_stl<double>(t_star);
-}
 
 /**
  * EuclideanNorm
