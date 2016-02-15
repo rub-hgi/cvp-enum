@@ -78,7 +78,7 @@ option  "babaiBound"
 option  "dComp"
         -
         "how to compute d Sequence for LP's enumeration"
-        values="delta","success","binary"
+        values="success","binary"
         enum
         default="success"
         optional

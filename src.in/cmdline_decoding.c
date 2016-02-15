@@ -46,7 +46,7 @@ const char *gengetopt_args_info_help[] = {
   "\nOptional Arguments:",
   "  the following options can be used to tune internal behaviour of program",
   "      --babaiBound=DOUBLE  when running LengthPruning, this factor controlls\n                             the generation of the R sequecne and especially\n                             when to switch to Babais enumeration\n                             (default=`4')",
-  "      --dComp=ENUM         how to compute d Sequence for LP's enumeration\n                             (possible values=\"delta\", \"success\",\n                             \"binary\" default=`success')",
+  "      --dComp=ENUM         how to compute d Sequence for LP's enumeration\n                             (possible values=\"success\", \"binary\"\n                             default=`success')",
   "      --rComp=ENUM         how to compute R Sequence for Length Pruning\n                             (possible values=\"length\", \"piece\"\n                             default=`length')",
   "      --factor=DOUBLE      controls the number of iterations done during\n                             enumeration  (default=`1.5')",
   "      --factor_bin=DOUBLE  controls the number of iterations done when using\n                             binary secret d sequences  (default=`1.0')",
@@ -87,7 +87,7 @@ static int
 cmdline_parser_required2 (struct gengetopt_args_info *args_info, const char *prog_name, const char *additional_error);
 
 const char *cmdline_parser_enumeration_values[] = {"ntl", "babai", "lp", "ln", 0}; /*< Possible values for enumeration. */
-const char *cmdline_parser_dComp_values[] = {"delta", "success", "binary", 0}; /*< Possible values for dComp. */
+const char *cmdline_parser_dComp_values[] = {"success", "binary", 0}; /*< Possible values for dComp. */
 const char *cmdline_parser_rComp_values[] = {"length", "piece", 0}; /*< Possible values for rComp. */
 
 static char *

@@ -35,7 +35,7 @@ extern "C" {
 #endif
 
 enum enum_enumeration { enumeration__NULL = -1, enumeration_arg_ntl = 0, enumeration_arg_babai, enumeration_arg_lp, enumeration_arg_ln };
-enum enum_dComp { dComp__NULL = -1, dComp_arg_delta = 0, dComp_arg_success, dComp_arg_binary };
+enum enum_dComp { dComp__NULL = -1, dComp_arg_success = 0, dComp_arg_binary };
 enum enum_rComp { rComp__NULL = -1, rComp_arg_length = 0, rComp_arg_piece };
 
 /** @brief Where the command line options are stored */
