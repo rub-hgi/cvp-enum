@@ -7,7 +7,7 @@
 #include <matrix_operations.h>
 #include <vector_templates.h>
 
-#include "enumeration.h" 
+#include "enumeration.h"
 
 using namespace std;
 
@@ -18,16 +18,17 @@ const double PI = 3.141592653589793238463;
 /**
  * ComputeD
  * \brief returns a vector of d_i's for the NearestPlanes algorithm by Lindner
- *        and Peikert 
+ *        and Peikert
  *
  * @params A_star_length lengths of vectors of Gram-Schmidt bassis
  * @params s Gaussian distribution parameter
  * @params q modulus
  * @params beta block size of BKZ run on basis
- * @params factor addition scaling factor to generate a sequence with larger/smaller success probability. By default, factor=1.0. 
+ * @params factor addition scaling factor to generate a sequence with
+ *         larger/smaller success probability. By default, factor=1.0.
  */
-vector<long> ComputeD(vector<double> A_star_length, int beta, double s,
-						   long q, double factor) {
+vector<long> ComputeD(vector<double> A_star_length, int beta, double s, long q,
+					  double factor) {
 	size_t m = A_star_length.size();
 	vector<long> d(m);
 
@@ -46,17 +47,17 @@ vector<long> ComputeD(vector<double> A_star_length, int beta, double s,
 
 /**
  * ComputeD_binary
- * compute the d-sequense for binary error. Same as Compute_D above
+ * \brief compute the d-sequense for binary error. Same as Compute_D above
  */
-vector<long> ComputeD_binary(vector<double> A_star_length, double factor, double factor_bin) {
-	
+vector<long> ComputeD_binary(vector<double> A_star_length, double factor,
+							 double factor_bin) {
 	int m = (int)A_star_length.size();
 	vector<long> d(m);
 	double tmp;
 
 	// for the binary part
 	for (int i = 0; i < m; i++) {
-		
+
 		tmp = factor / (2 * sqrt(A_star_length[i]));
 		if (tmp < 1)
 			d[i] = 1;
@@ -68,14 +69,15 @@ vector<long> ComputeD_binary(vector<double> A_star_length, double factor, double
 
 /**
  * ComputeR_LP
- * \brief computes the squared error-length allowed on each enumeration level when the Lindner-Peikert enumeration is used. Currently, not in use.
+ * \brief computes the squared error-length allowed on each enumeration level
+ *        when the Lindner-Peikert enumeration is used. Currently, not in use.
  */
-vector<double> ComputeR_LP(vector<double> A_star_length, vector<long> d) {
+vector<double> ComputeR_LP(matrix<double> A_star_length, vector<long> d) {
 	size_t m = A_star_length.size();
 	vector<double> R(m + 1, 0);
 	for (size_t i = 1; i <= m; ++i) {
-		R[m - i] =
-			R[m - i + 1] + (d[m - i]) * (d[m - i]) * A_star_length[m - i] / 4;
+		R[m - i] = R[m - i + 1] +
+				   (d[m - i]) * (d[m - i]) * A_star_length[m - i][m - i] / 4;
 	}
 	cout << endl;
 	return R;
@@ -83,24 +85,28 @@ vector<double> ComputeR_LP(vector<double> A_star_length, vector<long> d) {
 
 /**
  * ComputeRlength
- * \brief computes the squared error-length allowed on each enumeration level. I.e. \|e[m-i] \|^2 <= R[m-i]. Note R[1] > R[2] > ... R[m]
- * if the squared length of the Gram-Schmidt vectors > babai_bound * s^2, start Babai (one child allowed).
+ * \brief computes the squared error-length allowed on each enumeration level.
+ *        I.e. \|e[m-i] \|^2 <= R[m-i]. Note R[1] > R[2] > ... R[m]
+ *        if the squared length of the Gram-Schmidt vectors > babai_bound * s^2,
+ *        start Babai (one child allowed).
+ *
  * @params A_star_length lengths of vectors of Gram-Schmidt bassis
  * @params s Gaussian distribution parameter
  * @params q modulus
- * @params factor addition scaling factor to generate a sequence with larger/smaller success probability. By default, factor=1.0.
+ * @params factor addition scaling factor to generate a sequence with
+ *         larger/smaller success probability. By default, factor=1.0.
  * @params babaiBound controls when to start Babai's CVP
  */
-vector<double> ComputeRlength(vector<double> A_star_length, double s, double factor,
-							  double babaiBound) {
+vector<double> ComputeRlength(matrix<double> A_star_length, double s,
+							  double factor, double babaiBound) {
 	size_t m = A_star_length.size();
 	vector<double> R(m);
 	for (size_t i = 1; i <= m; ++i) {
 		// babaiBound * ... is 'some' factor, maybe needs to be adjusted
-		if (A_star_length[m - i] > babaiBound * s * s) {
+		if (A_star_length[m - i][m - i] > babaiBound * s * s) {
 			// allow only one node on level i
 			double prev_R_i = i == 1 ? 0 : R[m - i + 1];
-			R[m - i] = prev_R_i + 0.25 * A_star_length[m - i];
+			R[m - i] = prev_R_i + 0.25 * A_star_length[m - i][m - i];
 		} else {
 			R[m - i] = (double)i * s * s * factor * factor;
 		}
@@ -157,18 +163,19 @@ size_t ComputeLvlNP(vector<long> const &d, int n_threads, long factor_lvl) {
 
 /**
  * ComputeRlength_Piesewise
- * \brief will be used to output the numerically optimized R-bounds for the length-pruning.
+ * \brief will be used to output the numerically optimized R-bounds for the
+ *        length-pruning.
  */
-vector<double> ComputeR_PiecewiseB(vector<double> b_star_length, double s,
+vector<double> ComputeR_PiecewiseB(vector<double> A_star_length, double s,
 								   double factor) {
-	size_t m = b_star_length.size();
+	size_t m = A_star_length.size();
 	vector<double> R_tmp(m + 1);
 	vector<double> R(m);
 	R_tmp[m] = 0;
 
 	for (size_t i = 1; i <= m; ++i) {
 
-		double a = s * s / b_star_length[m - i];
+		double a = s * s / A_star_length[m - i];
 		cout << "a = " << a << " " << endl;
 		if (a < 1)
 			R[m - i] = (double)i * s * s * factor * factor;
@@ -178,7 +185,9 @@ vector<double> ComputeR_PiecewiseB(vector<double> b_star_length, double s,
 			R[m - i] = (double)i * s * s * factor * factor * a * .5;
 	}
 
-	// for(size_t i = 0; i<m; i++) R[i] = R_tmp[i];
+	// for (size_t i = 0; i < m; i++) {
+	// 	R[i] = R_tmp[i];
+	// }
 
 	return R;
 }

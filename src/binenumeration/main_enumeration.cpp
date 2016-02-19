@@ -108,6 +108,7 @@ int main(int argc, char *argv[]) {
 
 	matrix<long> A = Read<matrix<long>>(ifile_arg + "_matrix.dat");
 	const matrix<double> A_star = GSO(A);
+	const matrix<double> A_mu = muGSO(A);
 	vector<long> v = Read<vector<long>>(ifile_arg + "_vector.dat");
 
 	m_arg = (int)A.size();
@@ -144,12 +145,13 @@ int main(int argc, char *argv[]) {
 	case enumeration_arg_lp: {
 		switch (dComp_arg) {
 		case dComp_arg_success: {
-			d = ComputeD(VectorLengths(A_star), beta_arg, s_arg,
-								 q_arg, factor_arg);
+			d = ComputeD(VectorLengths(A_star), beta_arg, s_arg, q_arg,
+						 factor_arg);
 			break;
 		}
 		case dComp_arg_binary: {
-			d = ComputeD_binary(VectorLengths(A_star), factor_arg, factor_bin_arg);
+			d = ComputeD_binary(VectorLengths(A_star), factor_arg,
+								factor_bin_arg);
 			break;
 		}
 		case dComp__NULL:
@@ -175,7 +177,7 @@ int main(int argc, char *argv[]) {
 	case enumeration_arg_ln: {
 		switch (rComp_arg) {
 		case rComp_arg_length: {
-			r = ComputeRlength(VectorLengths(A_star), s_arg, factor_arg, babaiBound_arg);
+			r = ComputeRlength(A_mu, s_arg, factor_arg, babaiBound_arg);
 			break;
 		}
 		case rComp_arg_piece: {

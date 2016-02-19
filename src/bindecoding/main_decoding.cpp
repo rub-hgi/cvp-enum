@@ -186,10 +186,10 @@ Sample(chrono::duration<double> &duration) {
 	chrono::time_point<chrono::system_clock> start;
 	start = chrono::system_clock::now();
 
-	samples = GenerateSamples(n_arg, q_arg, m_arg, s_arg, TAILFACTOR,
-							  NUMBER_OF_RECTS, PRECISION, flag_binary,
-							  flag_trinary, flag_binary_secret, flag_binary_lwe,
-							  flag_binary_sis);
+	samples =
+		GenerateSamples(n_arg, q_arg, m_arg, s_arg, TAILFACTOR, NUMBER_OF_RECTS,
+						PRECISION, flag_binary, flag_trinary,
+						flag_binary_secret, flag_binary_lwe, flag_binary_sis);
 	// matrix<long> A = to_stl<long>(get<0>(samples));
 	Mat<ZZ> A = get<0>(samples);
 	vector<long> v;
@@ -293,13 +293,14 @@ vector<long> Enumerate(matrix<long> const &A, vector<long> const &v,
 	case enumeration_arg_lp: {
 		switch (dComp_arg) {
 		case dComp_arg_success: {
-			d = ComputeD(VectorLengths(A_star), beta_arg, s_arg,
-								 q_arg, factor_arg);
+			d = ComputeD(VectorLengths(A_star), beta_arg, s_arg, q_arg,
+						 factor_arg);
 			break;
 		}
 
 		case dComp_arg_binary: {
-			d = ComputeD_binary(VectorLengths(A_star), factor_arg, factor_bin_arg);
+			d = ComputeD_binary(VectorLengths(A_star), factor_arg,
+								factor_bin_arg);
 			break;
 		}
 		case dComp__NULL:
@@ -328,7 +329,7 @@ vector<long> Enumerate(matrix<long> const &A, vector<long> const &v,
 	case enumeration_arg_ln: {
 		switch (rComp_arg) {
 		case rComp_arg_length: {
-			r = ComputeRlength(VectorLengths(A_star), s_arg, factor_arg, babaiBound_arg);
+			r = ComputeRlength(A_mu, s_arg, factor_arg, babaiBound_arg);
 			break;
 		}
 		case rComp_arg_piece: {
