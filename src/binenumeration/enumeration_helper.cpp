@@ -68,22 +68,6 @@ vector<long> ComputeD_binary(vector<double> A_star_length, double factor,
 }
 
 /**
- * ComputeR_LP
- * \brief computes the squared error-length allowed on each enumeration level
- *        when the Lindner-Peikert enumeration is used. Currently, not in use.
- */
-vector<double> ComputeR_LP(matrix<double> A_star_length, vector<long> d) {
-	size_t m = A_star_length.size();
-	vector<double> R(m + 1, 0);
-	for (size_t i = 1; i <= m; ++i) {
-		R[m - i] = R[m - i + 1] +
-				   (d[m - i]) * (d[m - i]) * A_star_length[m - i][m - i] / 4;
-	}
-	cout << endl;
-	return R;
-}
-
-/**
  * ComputeRlength
  * \brief computes the squared error-length allowed on each enumeration level.
  *        I.e. \|e[m-i] \|^2 <= R[m-i]. Note R[1] > R[2] > ... R[m]

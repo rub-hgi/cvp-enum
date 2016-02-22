@@ -119,8 +119,6 @@ std::vector<long> ComputeD(std::vector<double> A_star_length, int beta,
  */
 std::vector<long> ComputeD_binary(std::vector<double> A_star_length,
 								  double factor, double factor_bin);
-std::vector<double> ComputeR_LP(matrix<double> A_star_length,
-								std::vector<long> d);
 
 /**
  * LengthPruningOpt
