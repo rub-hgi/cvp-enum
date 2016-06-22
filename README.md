@@ -1,5 +1,14 @@
 # Parallel Implementation of BDD enumeration for LWE
 
+This repository contains the code used for our same-named paper available
+[here](https://eprint.iacr.org/2016/380). If you use this code for your
+experiments or other work, please cite our work.
+
+TU Darmstadt published LWE challenges available [here](https://www.latticechallenge.org/lwe_challenge/challenge.php).
+They use a slightly different form than we do, so you need to convert between
+these two formats, if you want to utilise our code. There is an
+[issue](https://github.com/pfasante/cvp-enum/issues/4) covering this.
+
 ## Compile and Install
 The project depends on cmake (install cmake under Ubuntu) and
 NTL. In order to compile and test this package, these dependencies are needed.
