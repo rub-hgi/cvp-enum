@@ -2,7 +2,30 @@
 
 This repository contains the code used for our same-named paper available
 [here](https://eprint.iacr.org/2016/380). If you use this code for your
-experiments or other work, please cite our work.
+experiments or other work, please cite our work:
+```
+@inproceedings{DBLP:conf/acns/Kirshanova0W16,
+	author    = {Elena Kirshanova and
+				Alexander May and
+				Friedrich Wiemer},
+	editor    = {Mark Manulis and
+				Ahmad{-}Reza Sadeghi and
+				Steve Schneider},
+	title     = {{Parallel Implementation of BDD Enumeration for LWE}},
+	booktitle = {Applied Cryptography and Network Security - 14th International Conference,
+				{ACNS} 2016, Guildford, UK, June 19-22, 2016. Proceedings},
+	series    = {Lecture Notes in Computer Science},
+	volume    = {9696},
+	pages     = {580--591},
+	publisher = {Springer},
+	year      = {2016},
+	url       = {http://dx.doi.org/10.1007/978-3-319-39555-5_31},
+	doi       = {10.1007/978-3-319-39555-5_31},
+	timestamp = {Thu, 09 Jun 2016 15:11:40 +0200},
+	biburl    = {http://dblp.uni-trier.de/rec/bib/conf/acns/Kirshanova0W16},
+	bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+```
 
 TU Darmstadt published LWE challenges available [here](https://www.latticechallenge.org/lwe_challenge/challenge.php).
 They use a slightly different form than we do, so you need to convert between
